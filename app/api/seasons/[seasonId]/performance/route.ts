@@ -30,8 +30,49 @@ export async function GET(
       );
     }
 
-    // Converte os IDs dos pilotos de string para number antes de chamar a lib
+    // Converte os IDs dos pilotos de string para number de forma segura
     const p1 = parseInt(p1Str, 10);
     const p2 = parseInt(p2Str, 10);
 
-    if (isNaN(p1) || ...
+    if (isNaN(p1) || isNaN(p2)) {
+      return NextResponse.json(
+        { error: "Os parâmetros p1 e p2 devem ser números inteiros válidos." },
+        { status: 400 }
+      );
+    }
+
+    // Busca os dados de performance para os dois pilotos de forma concorrente
+    const [p1Data, p2Data] = await Promise.all([
+      getDriverPerformanceData(supabase, seasonId, p1),
+      getDriverPerformanceData(supabase, seasonId, p2),
+    ]);
+
+    if (!p1Data || !p2Data) {
+      return NextResponse.json(
+        { error: "Não foi possível encontrar os dados de um ou ambos os pilotos para esta temporada." },
+        { status: 404 }
+      );
+    }
+
+    // Ajuste estratégico de cor se os dois pilotos forem da mesma equipe
+    let finalP2Color = p2Data.teamColor;
+    if (p1Data.teamColor === p2Data.teamColor) {
+      finalP2Color = "#2563eb"; // Força um tom azul para distinguir nos gráficos
+    }
+
+    return NextResponse.json({
+      p1: p1Data,
+      p2: {
+        ...p2Data,
+        teamColor: finalP2Color,
+      },
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: `Erro ao buscar performance comparativa: ${err.message || err}` },
+      { status: 500 }
+    );
+  }
+}
+
+// Ajuste para git push
