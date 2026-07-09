@@ -6,54 +6,32 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ seasonId: string }> | { seasonId: string } }
+  context: { params: any }
 ) {
   try {
-    const params = await context.params;
-    const seasonId = params.seasonId;
+    const resolvedParams = await context.params;
+    const seasonId = parseInt(resolvedParams.seasonId, 10);
 
-    if (!seasonId) {
+    if (isNaN(seasonId)) {
       return NextResponse.json(
-        { error: "O parâmetro seasonId é obrigatório." },
+        { error: "O parâmetro seasonId é obrigatório e deve ser um número inteiro válido." },
         { status: 400 }
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const p1 = searchParams.get("p1");
-    const p2 = searchParams.get("p2");
+    const p1Str = searchParams.get("p1");
+    const p2Str = searchParams.get("p2");
 
-    if (!p1 || !p2) {
+    if (!p1Str || !p2Str) {
       return NextResponse.json(
-        { error: "Ambos os parâmetros p1 e p2 são obrigatórios." },
+        { error: "Os parâmetros p1 e p2 são obrigatórios na query string." },
         { status: 400 }
       );
     }
 
-    // Busca os dados de performance para os dois pilotos
-    const [p1Data, p2Data] = await Promise.all([
-      getDriverPerformanceData(supabase, seasonId, p1),
-      getDriverPerformanceData(supabase, seasonId, p2),
-    ]);
+    // Converte os IDs dos pilotos de string para number antes de chamar a lib
+    const p1 = parseInt(p1Str, 10);
+    const p2 = parseInt(p2Str, 10);
 
-    if (!p1Data || !p2Data) {
-      return NextResponse.json(
-        { error: "Um ou ambos os pilotos não foram encontrados nesta temporada." },
-        { status: 404 }
-      );
-    }
-
-    // Ajuste de cor se os dois pilotos forem da mesma equipe
-    let adjustedP2Data = { ...p2Data };
-    if (p1Data.teamColor === p2Data.teamColor) {
-      adjustedP2Data.teamColor = "#3b82f6"; // Azul em caso de conflito de cor
-    }
-
-    return NextResponse.json({ p1: p1Data, p2: adjustedP2Data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: `Erro ao buscar dados de performance: ${err.message || err}` },
-      { status: 500 }
-    );
-  }
-}
+    if (isNaN(p1) || ...
