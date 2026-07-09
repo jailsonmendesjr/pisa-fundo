@@ -1,11 +1,8 @@
 /**
  * lib/standings.ts
  *
- * Camada de acesso a dados para calcular classificacoes e performance.
- * Conecta as funcoes puras de lib/scoring.ts ao cliente Supabase.
- *
- * CORRIGIDO: IDs numéricos e mapeamento das funções originais do scoring.ts.
- * teste para push
+ * Ajustado para ler as tabelas nativas do Django no Supabase:
+ * championship_season, championship_round, championship_driverteamseason, etc.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -39,9 +36,6 @@ export interface DriverPerformanceData {
   dataPositions: (number | null)[];
 }
 
-/**
- * Motor central — busca dados do Supabase, acumula e ordena os standings.
- */
 export async function calculateStandings(
   supabase: SupabaseClient,
   seasonId: number,
@@ -49,7 +43,7 @@ export async function calculateStandings(
 ): Promise<SeasonStandings> {
   // 1. Buscar etapas da temporada
   const { data: rounds, error: roundsError } = await supabase
-    .from("rounds")
+    .from("championship_round")
     .select("id, order")
     .eq("season_id", seasonId)
     .order("order", { ascending: true });
@@ -61,15 +55,15 @@ export async function calculateStandings(
   }
   const roundIds = targetRounds.map((r) => r.id);
 
-  // 2. Buscar inscrições de pilotos titulares (is_guest = false)
+  // 2. Buscar inscrições usando as tabelas do Django e Joins explícitos via Supabase Embeds
   const { data: entries, error: entryError } = await supabase
-    .from("driver_team_season")
+    .from("championship_driverteamseason")
     .select(`
       id,
       car_number,
       is_guest,
-      drivers ( id, name ),
-      teams   ( id, name, primary_color )
+      championship_driver ( id, name ),
+      championship_team   ( id, name, primary_color )
     `)
     .eq("season_id", seasonId)
     .eq("is_guest", false);
@@ -79,11 +73,11 @@ export async function calculateStandings(
 
   const mappedEntries: any[] = entries.map((row: any) => ({
     entryId: String(row.id),
-    driverId: String(row.drivers.id),
-    driverName: row.drivers.name as string,
-    teamId: String(row.teams.id),
-    teamName: row.teams.name as string,
-    teamColor: row.teams.primary_color as string,
+    driverId: String(row.championship_driver.id),
+    driverName: row.championship_driver.name as string,
+    teamId: String(row.championship_team.id),
+    teamName: row.championship_team.name as string,
+    teamColor: row.championship_team.primary_color as string,
     carNumber: row.car_number as number | null,
     isGuest: row.is_guest as boolean,
     totalPoints: 0,
@@ -91,9 +85,9 @@ export async function calculateStandings(
     podiums: 0,
   }));
 
-  // 3. Buscar resultados das etapas selecionadas
+  // 3. Buscar resultados das etapas
   const { data: results, error: resultsError } = await supabase
-    .from("round_results")
+    .from("championship_roundresult")
     .select("entry_id, points, position, status")
     .in("round_id", roundIds);
 
@@ -106,7 +100,6 @@ export async function calculateStandings(
     status: row.status as ResultStatus,
   }));
 
-  // 4. Rodar o motor de cálculo puro importado do scoring.ts
   const accumulatedDrivers = accumulateDriverPoints(mappedEntries, mappedResults);
   const sortedDrivers = sortDriverStandings(accumulatedDrivers);
   const teamEntries = buildTeamStandings(sortedDrivers);
@@ -115,15 +108,12 @@ export async function calculateStandings(
   return { drivers: sortedDrivers, teams: sortedTeams };
 }
 
-/**
- * Calcula os standings com indicadores de evolução de posição (change)
- */
 export async function getSeasonStandingsWithChanges(
   supabase: SupabaseClient,
   seasonId: number
 ): Promise<SeasonStandings> {
   const { data: rounds, error: roundsError } = await supabase
-    .from("rounds")
+    .from("championship_round")
     .select("id")
     .eq("season_id", seasonId);
 
@@ -144,20 +134,17 @@ export async function getSeasonStandingsWithChanges(
   };
 }
 
-/**
- * Coleta os dados de performance de um piloto para os gráficos
- */
 export async function getDriverPerformanceData(
   supabase: SupabaseClient,
   seasonId: number,
   driverId: number
 ): Promise<DriverPerformanceData | null> {
   const { data: entryData, error: entryError } = await supabase
-    .from("driver_team_season")
+    .from("championship_driverteamseason")
     .select(`
       id,
-      drivers ( id, name ),
-      teams   ( name, primary_color )
+      championship_driver ( id, name ),
+      championship_team   ( name, primary_color )
     `)
     .eq("season_id", seasonId)
     .eq("driver_id", driverId)
@@ -166,12 +153,12 @@ export async function getDriverPerformanceData(
   if (entryError || !entryData) return null;
 
   const entryId = String(entryData.id);
-  const driverName = (entryData.drivers as any).name as string;
-  const teamName = (entryData.teams as any).name as string;
-  const teamColor = (entryData.teams as any).primary_color as string;
+  const driverName = (entryData.championship_driver as any).name as string;
+  const teamName = (entryData.championship_team as any).name as string;
+  const teamColor = (entryData.championship_team as any).primary_color as string;
 
   const { data: rounds, error: roundsError } = await supabase
-    .from("rounds")
+    .from("championship_round")
     .select("id, name, order")
     .eq("season_id", seasonId)
     .order("order", { ascending: true });
@@ -181,11 +168,11 @@ export async function getDriverPerformanceData(
   }
 
   const { data: resultsData, error: resultsError } = await supabase
-    .from("round_results")
+    .from("championship_roundresult")
     .select("round_id, points, position, status, fastest_lap")
     .eq("entry_id", entryId);
 
-  if (resultsError) throw new Error(`[standings] Erro ao buscar resultados do piloto: ${resultsError.message}`);
+  if (resultsError) throw new Error(`[standings] Erro ao buscar resultados: ${resultsError.message}`);
 
   const resultsByRound = new Map<string, any>();
   (resultsData || []).forEach((r) => resultsByRound.set(String(r.round_id), r));
@@ -218,7 +205,7 @@ export async function getDriverPerformanceData(
 
 export async function getRoundsWithWinners(supabase: SupabaseClient, seasonId: number) {
   const { data: rounds, error: rErr } = await supabase
-    .from("rounds")
+    .from("championship_round")
     .select("id, order, name, date, location")
     .eq("season_id", seasonId)
     .order("order", { ascending: true });
@@ -229,8 +216,8 @@ export async function getRoundsWithWinners(supabase: SupabaseClient, seasonId: n
   if (targetRounds.length === 0) return [];
 
   const { data: results, error: resErr } = await supabase
-    .from("round_results")
-    .select("round_id, position, status, driver_team_season!entry_id ( drivers ( name ) )")
+    .from("championship_roundresult")
+    .select("round_id, position, status, championship_driverteamseason!entry_id ( championship_driver ( name ) )")
     .eq("position", 1)
     .eq("status", "COMPLETED")
     .in("round_id", targetRounds.map((r) => r.id));
@@ -239,7 +226,7 @@ export async function getRoundsWithWinners(supabase: SupabaseClient, seasonId: n
 
   const winners: Record<string, string | null> = {};
   (results || []).forEach((row: any) => {
-    const fullName = row.driver_team_season?.drivers?.name as string | undefined;
+    const fullName = row.championship_driverteamseason?.championship_driver?.name as string | undefined;
     winners[String(row.round_id)] = fullName ? fullName.split(" ")[0] : null;
   });
 
@@ -251,16 +238,16 @@ export async function getRoundsWithWinners(supabase: SupabaseClient, seasonId: n
 
 export async function getDriversListForSeason(supabase: SupabaseClient, seasonId: number) {
   const { data, error } = await supabase
-    .from("driver_team_season")
-    .select("id, is_guest, driver_id, drivers ( id, name )")
+    .from("championship_driverteamseason")
+    .select("id, is_guest, driver_id, championship_driver ( id, name )")
     .eq("season_id", seasonId);
 
   if (error) throw new Error(`[standings] Erro ao buscar lista de pilotos: ${error.message}`);
 
   return (data || []).map((row: any) => ({
     entryId: String(row.id),
-    driverId: Number(row.drivers.id),
-    driverName: row.drivers.name as string,
+    driverId: Number(row.championship_driver.id),
+    driverName: row.championship_driver.name as string,
     isGuest: row.is_guest as boolean,
   }));
 }

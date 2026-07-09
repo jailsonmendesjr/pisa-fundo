@@ -26,7 +26,7 @@ export default async function SeasonDetailPage({ params, searchParams }: PagePro
 
   // 2. Executa as chamadas ao Supabase usando o ID numérico correto
   const [seasonResponse, standings, rounds] = await Promise.all([
-    supabase.from("seasons").select("name, year").eq("id", seasonId).single(),
+    supabase.from("championship_season").select("name, year").eq("id", seasonId).single(),
     getSeasonStandingsWithChanges(supabase, seasonId),
     getRoundsWithWinners(supabase, seasonId),
   ]);
