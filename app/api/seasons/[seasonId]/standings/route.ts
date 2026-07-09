@@ -6,15 +6,25 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ seasonId: string }> | { seasonId: string } }
+  context: { params: any }
 ) {
   try {
-    const params = await context.params;
-    const seasonId = params.seasonId;
+    // Forçar a resolução de params e conversão direta do ID para número inteiro
+    const resolvedParams = await context.params;
+    const seasonIdStr = resolvedParams.seasonId;
 
-    if (!seasonId) {
+    if (!seasonIdStr) {
       return NextResponse.json(
         { error: "O parâmetro seasonId é obrigatório." },
+        { status: 400 }
+      );
+    }
+
+    const seasonId = parseInt(seasonIdStr, 10);
+
+    if (isNaN(seasonId)) {
+      return NextResponse.json(
+        { error: "O parâmetro seasonId deve ser um número inteiro válido." },
         { status: 400 }
       );
     }
@@ -22,7 +32,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const compare = searchParams.get("compare") === "true";
 
-    // Validar se a temporada existe no Supabase para retornar um erro apropriado
+    // Validar se a temporada existe no Supabase usando o ID Numérico
     const { data: season, error: seasonError } = await supabase
       .from("seasons")
       .select("id")
@@ -43,7 +53,7 @@ export async function GET(
       );
     }
 
-    // Calcula os standings usando o motor typescript correspondente
+    // Agora o seasonId passa como number perfeitamente sem conflitos de tipo
     const standings = compare
       ? await getSeasonStandingsWithChanges(supabase, seasonId)
       : await calculateStandings(supabase, seasonId);
@@ -51,8 +61,10 @@ export async function GET(
     return NextResponse.json(standings);
   } catch (err: any) {
     return NextResponse.json(
-      { error: `Erro ao calcular classificação da temporada: ${err.message || err}` },
+      { error: `Erro interno no servidor: ${err.message || err}` },
       { status: 500 }
     );
   }
 }
+
+// Ajuste para git push e add
