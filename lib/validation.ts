@@ -375,9 +375,11 @@ export class MockQueryAdapter implements QueryAdapter {
 
   async count(
     table: string,
-    _filters: Record<string, unknown>,
-    _excludeId?: string
+    filters: Record<string, unknown>,
+    excludeId?: string
   ): Promise<number> {
+    void filters;
+    void excludeId;
     return this.mockCounts[table] ?? 0;
   }
 }

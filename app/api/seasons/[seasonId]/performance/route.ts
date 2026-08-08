@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getDriverPerformanceData } from "@/lib/standings";
+import { getErrorMessage } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  context: { params: any }
+  context: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const resolvedParams = await context.params;
@@ -67,12 +68,10 @@ export async function GET(
         teamColor: finalP2Color,
       },
     });
-  } catch (err: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: `Erro ao buscar performance comparativa: ${err.message || err}` },
+      { error: `Erro ao buscar performance comparativa: ${getErrorMessage(error)}` },
       { status: 500 }
     );
   }
 }
-
-// Ajuste para git push

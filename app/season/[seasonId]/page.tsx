@@ -6,15 +6,17 @@ import { getSeasonStandingsWithChanges, getRoundsWithWinners } from "@/lib/stand
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     seasonId: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     tab?: string;
-  };
+  }>;
 }
 
-export default async function SeasonDetailPage({ params, searchParams }: PageProps) {
+export default async function SeasonDetailPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   // 1. Converte o seasonId vindo da URL (string) para número inteiro (Django pattern)
   const seasonId = parseInt(params.seasonId, 10);
 
@@ -205,4 +207,3 @@ export default async function SeasonDetailPage({ params, searchParams }: PagePro
     </div>
   );
 }
-

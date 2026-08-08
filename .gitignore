@@ -8,10 +8,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 .yarn/
+
+# Vercel local project link
+.vercel/
 
 # Local Environment Files
 .env
@@ -20,6 +20,7 @@ pnpm-lock.yaml
 .env.test.local
 .env.production.local
 .env*.local
+!.env.example
 
 # Django Legacy Code & Configuration
 championship/
@@ -59,3 +60,4 @@ DIARIO_DE_BORDO.md
 .DS_Store
 .DS_Store?
 Thumbs.db
+*.tsbuildinfo
