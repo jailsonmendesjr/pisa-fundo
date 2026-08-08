@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 interface Season {
-  id: string;
+  id: number;
   name: string;
   year: number;
   is_active: boolean;
@@ -10,17 +11,16 @@ interface Season {
 export const revalidate = 0;
 
 async function getSeasons(): Promise<Season[]> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    const res = await fetch(`${appUrl}/api/seasons`, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`Erro HTTP: Status ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error("Erro ao buscar temporadas:", error);
-    return [];
+  const { data, error } = await supabase
+    .from("championship_season")
+    .select("id, name, year, is_active")
+    .order("year", { ascending: false });
+
+  if (error) {
+    throw new Error(`Erro ao buscar temporadas: ${error.message}`);
   }
+
+  return data;
 }
 
 export default async function HomePage() {

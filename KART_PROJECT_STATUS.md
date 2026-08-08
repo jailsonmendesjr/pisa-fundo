@@ -1,5 +1,9 @@
 # Kart Amateur Championship – Status do Projeto (MVP)
 
+> **Aviso:** este documento registra a arquitetura Django original. O projeto
+> ativo foi migrado para Next.js + Supabase. Consulte `README.md` e as
+> migrations em `supabase/migrations/` para a configuração atual.
+
 > **Data de Atualização:** 13/12/2025
 > **Fase Atual:** MVP (Funcional em Localhost) - Pronto para Containerização (Docker)
 > **Stack:** Django (Monolito) + Tailwind CSS (CDN) + SQLite (Dev)

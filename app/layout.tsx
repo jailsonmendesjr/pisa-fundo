@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -29,9 +30,9 @@ export default function RootLayout({
               </span>
             </div>
             <nav className="flex items-center gap-6">
-              <a href="/" className="text-sm font-semibold text-slate-300 hover:text-amber-500 transition-colors">
+              <Link href="/" className="text-sm font-semibold text-slate-300 hover:text-amber-500 transition-colors">
                 Temporadas
-              </a>
+              </Link>
             </nav>
           </div>
         </header>

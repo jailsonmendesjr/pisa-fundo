@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getErrorMessage } from "@/lib/errors";
 
 interface Driver {
   entryId: string;
@@ -24,6 +24,26 @@ interface DriverPerformanceData {
   dataPositions: (number | null)[];
 }
 
+interface SeasonApiResponse {
+  season?: { name: string; year: number };
+  drivers?: Driver[];
+  error?: string;
+}
+
+interface PerformanceApiResponse {
+  p1?: DriverPerformanceData;
+  p2?: DriverPerformanceData;
+  error?: string;
+}
+
+interface LoadedComparison {
+  key: string;
+  data: {
+    p1: DriverPerformanceData;
+    p2: DriverPerformanceData;
+  };
+}
+
 export default function PerformancePage() {
   const { seasonId } = useParams() as { seasonId: string };
 
@@ -33,11 +53,8 @@ export default function PerformancePage() {
   const [p2, setP2] = useState<string>("");
 
   const [loadingDrivers, setLoadingDrivers] = useState(true);
-  const [loadingPerformance, setLoadingPerformance] = useState(false);
-  const [performanceData, setPerformanceData] = useState<{
-    p1: DriverPerformanceData;
-    p2: DriverPerformanceData;
-  } | null>(null);
+  const [loadingComparisonKey, setLoadingComparisonKey] = useState<string | null>(null);
+  const [loadedComparison, setLoadedComparison] = useState<LoadedComparison | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -45,87 +62,84 @@ export default function PerformancePage() {
   const [hoveredPointsIndex, setHoveredPointsIndex] = useState<number | null>(null);
   const [hoveredPosIndex, setHoveredPosIndex] = useState<number | null>(null);
 
+  const comparisonKey = seasonId && p1 && p2 && p1 !== p2
+    ? `${seasonId}:${p1}:${p2}`
+    : null;
+  const loadingPerformance = comparisonKey !== null && loadingComparisonKey === comparisonKey;
+  const performanceData = comparisonKey !== null && loadedComparison?.key === comparisonKey
+    ? loadedComparison.data
+    : null;
+
   // 1. Carrega dados iniciais da temporada e lista de pilotos
   useEffect(() => {
     if (!seasonId) return;
+    const controller = new AbortController();
 
     async function loadInitialData() {
       setLoadingDrivers(true);
       setError(null);
       try {
-        // Busca a temporada
-        const { data: seasonData, error: sErr } = await supabase
-          .from("seasons")
-          .select("name, year")
-          .eq("id", seasonId)
-          .single();
+        const response = await fetch(`/api/seasons/${seasonId}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as SeasonApiResponse;
 
-        if (sErr) throw sErr;
-        setSeason(seasonData);
+        if (!response.ok || !payload.season || !payload.drivers) {
+          throw new Error(payload.error || "Erro ao carregar a temporada.");
+        }
 
-        // Busca os pilotos inscritos na temporada
-        const { data: driversData, error: dErr } = await supabase
-          .from("driver_team_season")
-          .select("id, is_guest, driver_id, drivers ( id, name )")
-          .eq("season_id", seasonId);
-
-        if (dErr) throw dErr;
-
-        const formatted = (driversData ?? [])
-          .map((row: any) => ({
-            entryId: String(row.id),
-            driverId: String(row.drivers?.id),
-            driverName: row.drivers?.name as string,
-            isGuest: row.is_guest as boolean,
-          }))
-          .filter((d) => d.driverId && d.driverName)
-          .sort((a, b) => a.driverName.localeCompare(b.driverName));
-
-        setDrivers(formatted);
-      } catch (err: any) {
-        console.error(err);
+        setSeason(payload.season);
+        setDrivers(payload.drivers);
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+        console.error(error);
         setError("Não foi possível carregar a lista de pilotos desta temporada.");
       } finally {
-        setLoadingDrivers(false);
+        if (!controller.signal.aborted) setLoadingDrivers(false);
       }
     }
 
     loadInitialData();
+    return () => controller.abort();
   }, [seasonId]);
 
   // 2. Busca dados de performance dos pilotos selecionados
   useEffect(() => {
-    if (!seasonId || !p1 || !p2) {
-      setPerformanceData(null);
-      return;
-    }
-
-    if (p1 === p2) {
-      setPerformanceData(null);
-      return;
-    }
+    if (!comparisonKey) return;
+    const key = comparisonKey;
+    const controller = new AbortController();
 
     async function loadPerformance() {
-      setLoadingPerformance(true);
+      setLoadingComparisonKey(key);
       setError(null);
       try {
-        const res = await fetch(`/api/seasons/${seasonId}/performance?p1=${p1}&p2=${p2}`);
+        const res = await fetch(`/api/seasons/${seasonId}/performance?p1=${p1}&p2=${p2}`, {
+          signal: controller.signal,
+        });
+        const data = (await res.json()) as PerformanceApiResponse;
+
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || "Erro na busca dos dados.");
+          throw new Error(data.error || "Erro na busca dos dados.");
         }
-        const data = await res.json();
-        setPerformanceData(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Erro ao carregar a análise comparativa.");
+
+        if (!data.p1 || !data.p2) {
+          throw new Error("Resposta incompleta ao carregar a análise comparativa.");
+        }
+
+        setLoadedComparison({ key, data: { p1: data.p1, p2: data.p2 } });
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setError(getErrorMessage(error) || "Erro ao carregar a análise comparativa.");
       } finally {
-        setLoadingPerformance(false);
+        if (!controller.signal.aborted) setLoadingComparisonKey(null);
       }
     }
 
     loadPerformance();
-  }, [seasonId, p1, p2]);
+    return () => controller.abort();
+  }, [comparisonKey, p1, p2, seasonId]);
 
   // Helpers para desenhar o gráfico SVG
   const paddingLeft = 50;

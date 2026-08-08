@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { calculateStandings, getSeasonStandingsWithChanges } from "@/lib/standings";
+import { getErrorMessage } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  context: { params: any }
+  context: { params: Promise<{ seasonId: string }> }
 ) {
   try {
     const resolvedParams = await context.params;
@@ -44,7 +45,7 @@ export async function GET(
       : await calculateStandings(supabase, seasonId);
 
     return NextResponse.json(standings);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
