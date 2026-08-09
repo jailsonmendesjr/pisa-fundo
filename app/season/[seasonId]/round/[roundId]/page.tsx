@@ -18,6 +18,12 @@ const statusLabels: Record<string, string> = {
   DNS: "Não largou",
 };
 
+const podiumEmojis: Record<number, { emoji: string; label: string }> = {
+  1: { emoji: "🏆", label: "Primeiro lugar" },
+  2: { emoji: "🥈", label: "Segundo lugar" },
+  3: { emoji: "🥉", label: "Terceiro lugar" },
+};
+
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -99,53 +105,73 @@ export default async function RoundResultPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {results.map((result) => (
-                  <tr key={result.id} className="hover:bg-slate-800/30">
-                    <td className="px-5 py-4 text-center text-base font-black italic text-slate-200">
-                      {result.position}º
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="font-bold text-white">{result.driverName}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {result.carNumber !== null ? `#${result.carNumber}` : "Sem número"}
-                        {result.isGuest ? " · convidado" : ""}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className="inline-flex items-center gap-2 rounded border bg-slate-950/50 px-2 py-1 text-xs font-medium"
-                        style={{ borderColor: `${result.teamColor}40`, color: result.teamColor }}
-                      >
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: result.teamColor }} />
-                        {result.teamName}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-300">
-                      {statusLabels[result.status] ?? result.status}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {result.fastestLap && (
-                          <span className="rounded-full bg-purple-500/10 px-2 py-1 text-xs font-bold text-purple-300">
-                            Volta rápida
-                          </span>
-                        )}
-                        {result.hasPenalty && (
-                          <span
-                            className="rounded-full bg-rose-500/10 px-2 py-1 text-xs font-bold text-rose-300"
-                            title={result.penaltyReason}
-                          >
-                            Penalidade
-                          </span>
-                        )}
-                        {!result.fastestLap && !result.hasPenalty && <span className="text-slate-600">—</span>}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-right text-base font-black text-amber-500">
-                      {result.points}
-                    </td>
-                  </tr>
-                ))}
+                {results.map((result) => {
+                  const podium = podiumEmojis[result.position];
+
+                  return (
+                    <tr key={result.id} className="hover:bg-slate-800/30">
+                      <td className="px-5 py-4 text-center text-base font-black italic text-slate-200">
+                        <span className="inline-flex items-center justify-center gap-2">
+                          {result.position}º
+                          {podium && (
+                            <span aria-hidden="true" title={podium.label} className="not-italic">
+                              {podium.emoji}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-white">{result.driverName}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {result.carNumber !== null ? `#${result.carNumber}` : "Sem número"}
+                          {result.isGuest ? " · convidado" : ""}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className="inline-flex items-center gap-2 rounded border bg-slate-950/50 px-2 py-1 text-xs font-medium"
+                          style={{ borderColor: `${result.teamColor}40`, color: result.teamColor }}
+                        >
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: result.teamColor }} />
+                          {result.teamName}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-slate-300">
+                        {statusLabels[result.status] ?? result.status}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {result.fastestLap && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-1 text-xs font-bold text-purple-300"
+                              aria-label="Volta rápida"
+                              title="Volta rápida"
+                            >
+                              <span aria-hidden="true">⏱️</span>
+                              <span aria-hidden="true" className="hidden sm:inline">
+                                Volta rápida
+                              </span>
+                            </span>
+                          )}
+                          {result.hasPenalty && (
+                            <span
+                              className="rounded-full bg-rose-500/10 px-2 py-1 text-xs font-bold text-rose-300"
+                              title={result.penaltyReason}
+                            >
+                              Penalidade
+                            </span>
+                          )}
+                          {!result.fastestLap && !result.hasPenalty && (
+                            <span className="text-slate-600">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-right text-base font-black text-amber-500">
+                        {result.points}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

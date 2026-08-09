@@ -93,7 +93,9 @@ export default async function SeasonDetailPage(props: PageProps) {
                 <thead>
                   <tr className="bg-slate-950 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-800">
                     <th className="py-4 px-4 text-center w-16">Pos</th>
-                    <th className="py-4 px-3 text-center w-12">&nbsp;</th>
+                    <th className="py-4 px-3 text-center w-16">
+                      <span className="sr-only">Variação desde a última etapa</span>
+                    </th>
                     <th className="py-4 px-4">Piloto</th>
                     <th className="py-4 px-4">Equipe</th>
                     <th className="py-4 px-4 text-center w-20">Nº</th>
@@ -111,9 +113,11 @@ export default async function SeasonDetailPage(props: PageProps) {
                     </tr>
                   ) : (
                     standings.drivers.map((driver) => {
-                      const change = String(driver.change);
-                      const isUp = change.startsWith("▲");
-                      const isDown = change.startsWith("▼");
+                      const change = driver.change ?? 0;
+                      const isUp = change > 0;
+                      const isDown = change < 0;
+                      const changeAmount = Math.abs(change);
+                      const positionLabel = changeAmount === 1 ? "posição" : "posições";
 
                       return (
                         <tr key={driver.driverId} className="hover:bg-slate-800/30 transition-colors">
@@ -121,9 +125,31 @@ export default async function SeasonDetailPage(props: PageProps) {
                             {driver.position}º
                           </td>
                           <td className="py-4 px-3 text-center text-xs font-bold">
-                            {isUp && <span className="text-emerald-500">{change}</span>}
-                            {isDown && <span className="text-rose-500">{change}</span>}
-                            {!isUp && !isDown && <span className="text-slate-600">•</span>}
+                            {isUp && (
+                              <span
+                                className="inline-flex items-center gap-1 text-emerald-400"
+                                aria-label={`Subiu ${changeAmount} ${positionLabel} desde a última etapa`}
+                                title={`Subiu ${changeAmount} ${positionLabel}`}
+                              >
+                                <span aria-hidden="true">▲</span>
+                                {changeAmount}
+                              </span>
+                            )}
+                            {isDown && (
+                              <span
+                                className="inline-flex items-center gap-1 text-rose-400"
+                                aria-label={`Caiu ${changeAmount} ${positionLabel} desde a última etapa`}
+                                title={`Caiu ${changeAmount} ${positionLabel}`}
+                              >
+                                <span aria-hidden="true">▼</span>
+                                {changeAmount}
+                              </span>
+                            )}
+                            {!isUp && !isDown && (
+                              <span className="text-slate-600" aria-label="Manteve a posição desde a última etapa">
+                                —
+                              </span>
+                            )}
                           </td>
                           <td className="py-4 px-4 font-semibold text-white">
                             {driver.driverName}

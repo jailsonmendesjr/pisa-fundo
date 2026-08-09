@@ -72,21 +72,23 @@ export interface RoundResultData {
 export async function calculateStandings(
   supabase: AppSupabaseClient,
   seasonId: number,
-  excludeLastRound = false
+  excludedRoundId?: number
 ): Promise<SeasonStandings> {
   // 1. Buscar etapas da temporada
-  const { data: rounds, error: roundsError } = await supabase
+  let roundsQuery = supabase
     .from("championship_round")
     .select("id, order")
     .eq("season_id", seasonId)
     .order("order", { ascending: true });
 
-  if (roundsError) throw new Error(`[standings] Erro ao buscar etapas: ${roundsError.message}`);
-  let targetRounds = rounds || [];
-  if (excludeLastRound && targetRounds.length > 0) {
-    targetRounds = targetRounds.slice(0, -1);
+  if (excludedRoundId !== undefined) {
+    roundsQuery = roundsQuery.neq("id", excludedRoundId);
   }
-  const roundIds = targetRounds.map((r) => r.id);
+
+  const { data: rounds, error: roundsError } = await roundsQuery;
+
+  if (roundsError) throw new Error(`[standings] Erro ao buscar etapas: ${roundsError.message}`);
+  const roundIds = (rounds || []).map((round) => round.id);
 
   // 2. Buscar inscrições usando as tabelas do Django e Joins explícitos via Supabase Embeds
   const { data: entries, error: entryError } = await supabase
@@ -147,19 +149,42 @@ export async function getSeasonStandingsWithChanges(
 ): Promise<SeasonStandings> {
   const { data: rounds, error: roundsError } = await supabase
     .from("championship_round")
-    .select("id")
-    .eq("season_id", seasonId);
+    .select("id, date, order")
+    .eq("season_id", seasonId)
+    .order("date", { ascending: true })
+    .order("order", { ascending: true });
 
   if (roundsError) throw new Error(`[standings] Erro ao verificar etapas: ${roundsError.message}`);
 
-  const current = await calculateStandings(supabase, seasonId, false);
+  const roundIds = (rounds ?? []).map((round) => round.id);
+  const { data: resultRounds, error: resultRoundsError } = roundIds.length
+    ? await supabase
+        .from("championship_roundresult")
+        .select("round_id")
+        .in("round_id", roundIds)
+    : { data: [], error: null };
 
-  if (rounds && rounds.length > 1) {
-    const previous = await calculateStandings(supabase, seasonId, true);
+  if (resultRoundsError) {
+    throw new Error(
+      `[standings] Erro ao verificar resultados publicados: ${resultRoundsError.message}`
+    );
+  }
+
+  const resultRoundIds = new Set((resultRounds ?? []).map((result) => result.round_id));
+  const publishedRounds = (rounds ?? []).filter((round) => resultRoundIds.has(round.id));
+  const latestPublishedRoundId = publishedRounds.at(-1)?.id;
+
+  if (publishedRounds.length > 1 && latestPublishedRoundId !== undefined) {
+    const [current, previous] = await Promise.all([
+      calculateStandings(supabase, seasonId),
+      calculateStandings(supabase, seasonId, latestPublishedRoundId),
+    ]);
     const driversWithChange = applyDriverPositionChanges(current.drivers, previous.drivers);
     const teamsWithChange = applyTeamPositionChanges(current.teams, previous.teams);
     return { drivers: driversWithChange, teams: teamsWithChange };
   }
+
+  const current = await calculateStandings(supabase, seasonId);
 
   return {
     drivers: current.drivers.map((d) => ({ ...d, change: 0 })),
