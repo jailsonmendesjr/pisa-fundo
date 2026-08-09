@@ -14,6 +14,45 @@ interface PageProps {
   }>;
 }
 
+function PositionChange({ change = 0 }: { change?: number }) {
+  const isUp = change > 0;
+  const isDown = change < 0;
+  const changeAmount = Math.abs(change);
+  const positionLabel = changeAmount === 1 ? "posição" : "posições";
+
+  if (isUp) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-emerald-400"
+        aria-label={`Subiu ${changeAmount} ${positionLabel} desde a última etapa`}
+        title={`Subiu ${changeAmount} ${positionLabel}`}
+      >
+        <span aria-hidden="true">▲</span>
+        {changeAmount}
+      </span>
+    );
+  }
+
+  if (isDown) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-rose-400"
+        aria-label={`Caiu ${changeAmount} ${positionLabel} desde a última etapa`}
+        title={`Caiu ${changeAmount} ${positionLabel}`}
+      >
+        <span aria-hidden="true">▼</span>
+        {changeAmount}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-slate-600" aria-label="Manteve a posição desde a última etapa">
+      —
+    </span>
+  );
+}
+
 export default async function SeasonDetailPage(props: PageProps) {
   const searchParams = await props.searchParams;
   const params = await props.params;
@@ -24,7 +63,10 @@ export default async function SeasonDetailPage(props: PageProps) {
     return notFound();
   }
 
-  const activeTab = searchParams.tab || "drivers";
+  const activeTab =
+    searchParams.tab === "teams" || searchParams.tab === "calendar"
+      ? searchParams.tab
+      : "drivers";
 
   // 2. Executa as chamadas ao Supabase usando o ID numérico correto
   const [seasonResponse, standings, rounds] = await Promise.all([
@@ -64,24 +106,39 @@ export default async function SeasonDetailPage(props: PageProps) {
         </div>
 
         {/* Abas de Navegação (Server-Side Tabs) */}
-        <div className="flex border-b border-slate-800 mb-6">
+        <div className="flex overflow-x-auto border-b border-slate-800 mb-6">
           <Link
             href={`/season/${seasonId}?tab=drivers`}
-            className={`px-4 py-2 font-bold uppercase italic border-b-2 text-sm transition-colors ${activeTab === "drivers"
+            aria-current={activeTab === "drivers" ? "page" : undefined}
+            className={`flex-1 sm:flex-none whitespace-nowrap px-3 sm:px-4 py-2 text-center font-bold uppercase italic border-b-2 text-sm transition-colors ${activeTab === "drivers"
               ? "border-amber-500 text-amber-500"
               : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
           >
-            🏁 Classificação de Pilotos
+            <span className="sm:hidden">Pilotos</span>
+            <span className="hidden sm:inline">🏁 Classificação de Pilotos</span>
+          </Link>
+          <Link
+            href={`/season/${seasonId}?tab=teams`}
+            aria-current={activeTab === "teams" ? "page" : undefined}
+            className={`flex-1 sm:flex-none whitespace-nowrap px-3 sm:px-4 py-2 text-center font-bold uppercase italic border-b-2 text-sm transition-colors ${activeTab === "teams"
+              ? "border-amber-500 text-amber-500"
+              : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+          >
+            <span className="sm:hidden">Equipes</span>
+            <span className="hidden sm:inline">🏆 Classificação de Equipes</span>
           </Link>
           <Link
             href={`/season/${seasonId}?tab=calendar`}
-            className={`px-4 py-2 font-bold uppercase italic border-b-2 text-sm transition-colors ${activeTab === "calendar"
+            aria-current={activeTab === "calendar" ? "page" : undefined}
+            className={`flex-1 sm:flex-none whitespace-nowrap px-3 sm:px-4 py-2 text-center font-bold uppercase italic border-b-2 text-sm transition-colors ${activeTab === "calendar"
               ? "border-amber-500 text-amber-500"
               : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
           >
-            📅 Calendário de Etapas
+            <span className="sm:hidden">Etapas</span>
+            <span className="hidden sm:inline">📅 Calendário de Etapas</span>
           </Link>
         </div>
 
@@ -112,44 +169,13 @@ export default async function SeasonDetailPage(props: PageProps) {
                       </td>
                     </tr>
                   ) : (
-                    standings.drivers.map((driver) => {
-                      const change = driver.change ?? 0;
-                      const isUp = change > 0;
-                      const isDown = change < 0;
-                      const changeAmount = Math.abs(change);
-                      const positionLabel = changeAmount === 1 ? "posição" : "posições";
-
-                      return (
+                    standings.drivers.map((driver) => (
                         <tr key={driver.driverId} className="hover:bg-slate-800/30 transition-colors">
                           <td className="py-4 px-4 font-black italic text-center text-base text-slate-300">
                             {driver.position}º
                           </td>
                           <td className="py-4 px-3 text-center text-xs font-bold">
-                            {isUp && (
-                              <span
-                                className="inline-flex items-center gap-1 text-emerald-400"
-                                aria-label={`Subiu ${changeAmount} ${positionLabel} desde a última etapa`}
-                                title={`Subiu ${changeAmount} ${positionLabel}`}
-                              >
-                                <span aria-hidden="true">▲</span>
-                                {changeAmount}
-                              </span>
-                            )}
-                            {isDown && (
-                              <span
-                                className="inline-flex items-center gap-1 text-rose-400"
-                                aria-label={`Caiu ${changeAmount} ${positionLabel} desde a última etapa`}
-                                title={`Caiu ${changeAmount} ${positionLabel}`}
-                              >
-                                <span aria-hidden="true">▼</span>
-                                {changeAmount}
-                              </span>
-                            )}
-                            {!isUp && !isDown && (
-                              <span className="text-slate-600" aria-label="Manteve a posição desde a última etapa">
-                                —
-                              </span>
-                            )}
+                            <PositionChange change={driver.change} />
                           </td>
                           <td className="py-4 px-4 font-semibold text-white">
                             {driver.driverName}
@@ -176,12 +202,77 @@ export default async function SeasonDetailPage(props: PageProps) {
                             {driver.totalPoints}
                           </td>
                         </tr>
-                      );
-                    })
+                      ))
                   )}
                 </tbody>
               </table>
             </div>
+          </div>
+        ) : activeTab === "teams" ? (
+          <div className="-mx-4 sm:mx-0 bg-slate-900 border border-slate-800 rounded-none sm:rounded-lg overflow-hidden shadow-xl">
+            <table className="w-full table-fixed md:table-auto text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-950 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-800">
+                  <th className="py-4 px-2 sm:px-4 text-center w-16 md:w-28">
+                    Pos
+                    <span className="sr-only"> e variação desde a última etapa</span>
+                  </th>
+                  <th className="py-4 px-3 sm:px-4">Equipe</th>
+                  <th className="hidden md:table-cell py-4 px-4 text-center w-24">Vitórias</th>
+                  <th className="hidden md:table-cell py-4 px-4 text-center w-24">Pódios</th>
+                  <th className="py-4 px-2 sm:px-4 text-right w-14 sm:w-20 md:w-24 sm:pr-6">
+                    <span className="sm:hidden">Pts</span>
+                    <span className="hidden sm:inline">Pontos</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50 text-sm">
+                {standings.teams.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 px-4 text-center text-slate-500">
+                      Nenhuma equipe pontuou ou foi inscrita nesta temporada ainda.
+                    </td>
+                  </tr>
+                ) : (
+                  standings.teams.map((team) => (
+                    <tr key={team.teamId} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-2 sm:px-4 text-center text-slate-300">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="font-black italic text-base">{team.position}º</span>
+                          <span className="text-xs font-bold">
+                            <PositionChange change={team.change} />
+                          </span>
+                        </div>
+                      </td>
+                      <td className="max-w-0 py-4 px-2 sm:px-4">
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                          <span
+                            className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 rounded-full border border-white/20 shadow-sm"
+                            style={{ backgroundColor: team.teamColor }}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-white">{team.teamName}</div>
+                            <div className="mt-0.5 break-words text-xs leading-snug text-slate-400">
+                              {team.driversSummary}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell py-4 px-4 text-center font-medium text-slate-300">
+                        {team.wins}
+                      </td>
+                      <td className="hidden md:table-cell py-4 px-4 text-center text-slate-300">
+                        {team.podiums}
+                      </td>
+                      <td className="py-4 px-3 sm:px-4 text-right font-black text-amber-500 text-base sm:pr-6">
+                        {team.totalPoints}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
