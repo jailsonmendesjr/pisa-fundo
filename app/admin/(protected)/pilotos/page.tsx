@@ -57,7 +57,7 @@ export default async function DriversAdminPage({ searchParams }: PageProps) {
       <Notice success={query.success} error={query.error} />
 
       <section className={cardClassName}>
-        <h2 className="mb-5 text-lg font-black text-white">Novo piloto</h2>
+        <h2 className="mb-5 text-lg font-black text-slate-950">Novo piloto</h2>
         <form action={createDriver} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
           <DriverFields />
           <div className="lg:col-span-4">
@@ -73,7 +73,7 @@ export default async function DriversAdminPage({ searchParams }: PageProps) {
               <input type="hidden" name="id" value={driver.id} />
               <DriverFields driver={driver} />
               <div className="flex items-center justify-between lg:col-span-4">
-                <span className="text-xs font-bold text-slate-600">ID {driver.id}</span>
+                <span className="text-xs font-bold text-slate-400">ID {driver.id}</span>
                 <SubmitButton>Salvar piloto</SubmitButton>
               </div>
             </form>

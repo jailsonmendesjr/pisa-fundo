@@ -83,7 +83,7 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
               ))}
             </select>
           </label>
-          <button className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:border-amber-500">
+          <button className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-900 hover:border-red-500">
             Carregar grid
           </button>
         </form>
@@ -95,23 +95,23 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
           <section className={cardClassName}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-amber-500">
+                <p className="text-xs font-black uppercase tracking-widest text-red-600">
                   {selectedSeason?.name}
                 </p>
-                <h2 className="mt-1 text-2xl font-black text-white">
+                <h2 className="mt-1 text-2xl font-black text-slate-950">
                   #{selectedRound.order} {selectedRound.name}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">{selectedRound.date}</p>
               </div>
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-slate-500">
                 {results.size} de {entriesResponse.data?.length ?? 0} resultados lançados
               </div>
             </div>
           </section>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-[1120px] w-full text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-950/60 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Piloto</th>
                   <th className="px-4 py-3">Status</th>
@@ -122,14 +122,14 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
                   <th className="px-4 py-3 text-right">Pontos</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200">
                 {(entriesResponse.data ?? []).map((entry, index) => {
                   const result = results.get(entry.id);
                   return (
-                    <tr key={entry.id} className="align-top hover:bg-slate-800/30">
+                    <tr key={entry.id} className="align-top hover:bg-slate-50">
                       <td className="px-4 py-4">
                         <input type="hidden" name="entry_id" value={entry.id} />
-                        <p className="font-black text-white">
+                        <p className="font-black text-slate-950">
                           {driverNames.get(entry.driver_id) ?? `Piloto ${entry.driver_id}`}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -164,7 +164,7 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
                           name={`fastest_${entry.id}`}
                           type="checkbox"
                           defaultChecked={result?.fastest_lap}
-                          className="mt-2 h-5 w-5 accent-amber-500"
+                          className="mt-2 h-5 w-5 accent-red-600"
                           aria-label={`Volta rápida de ${driverNames.get(entry.driver_id)}`}
                         />
                       </td>
@@ -186,7 +186,7 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
                           placeholder="Informativo"
                         />
                       </td>
-                      <td className="px-4 py-4 text-right font-black text-amber-400">
+                      <td className="px-4 py-4 text-right font-black text-red-600">
                         {result?.points ?? "—"}
                       </td>
                     </tr>
@@ -196,8 +196,8 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-2xl text-sm leading-6 text-slate-300">
+          <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-2xl text-sm leading-6 text-slate-700">
               Linhas com “Não lançado” serão removidas desta etapa. Penalidades ficam registradas como informação e não alteram a pontuação.
             </p>
             <SubmitButton pendingLabel="Publicando..." className="px-6 py-3">
@@ -206,7 +206,7 @@ export default async function ResultsAdminPage({ searchParams }: PageProps) {
           </div>
         </form>
       ) : (
-        <p className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-500">
+        <p className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
           Cadastre uma etapa antes de lançar resultados.
         </p>
       )}

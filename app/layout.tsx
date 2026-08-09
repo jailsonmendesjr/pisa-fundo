@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import { FlagTriangleRight } from "lucide-react";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Pisa Fundo – Campeonato de Kart",
@@ -16,24 +17,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className={`${inter.className} bg-slate-950 text-slate-100 min-h-screen flex flex-col`}>
+    <html lang="pt-BR" className={inter.variable}>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-950 flex flex-col`}>
         {/* Header/Navbar */}
-        <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+        <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950 text-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-black tracking-wider text-amber-500 italic">
-                PISA FUNDO
-              </span>
-              <span className="text-[10px] tracking-widest bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded font-bold border border-amber-500/20 uppercase">
-                Kart
-              </span>
-            </div>
-            <nav className="flex items-center gap-6">
-              <Link href="/" className="text-sm font-semibold text-slate-300 hover:text-amber-500 transition-colors">
+            <Link href="/" className="flex min-w-0 items-center gap-2 font-bold tracking-wide text-white">
+              <span className="truncate text-base sm:text-lg">PISA FUNDO KART</span>
+              <FlagTriangleRight className="h-5 w-5 shrink-0 text-slate-300" aria-hidden="true" />
+            </Link>
+            <nav className="flex items-center gap-4 sm:gap-6">
+              <Link href="/" className="text-sm font-medium text-slate-200 transition-colors hover:text-white">
                 Temporadas
               </Link>
-              <Link href="/admin" className="text-sm font-semibold text-slate-500 hover:text-amber-500 transition-colors">
+              <Link href="/admin" className="text-sm font-medium text-slate-400 transition-colors hover:text-white">
                 Admin
               </Link>
             </nav>
@@ -46,7 +43,7 @@ export default function RootLayout({
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-slate-900 bg-slate-950 text-center py-6 text-xs text-slate-500">
+        <footer className="border-t border-slate-800 bg-slate-950 text-center py-6 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} Pisa Fundo. Todos os direitos reservados.</p>
         </footer>
       </body>

@@ -10,8 +10,8 @@ export function Notice({ success, error }: NoticeProps) {
     <div
       className={`rounded-xl border p-4 text-sm ${
         error
-          ? "border-red-500/20 bg-red-500/10 text-red-300"
-          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
       }`}
     >
       {error ?? success}
@@ -29,14 +29,14 @@ export function PageHeading({ eyebrow, title, description }: PageHeadingProps) {
   return (
     <header className="space-y-2">
       {eyebrow ? (
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">
           {eyebrow}
         </p>
       ) : null}
-      <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+      <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
         {title}
       </h1>
-      <p className="max-w-3xl text-sm leading-6 text-slate-400 sm:text-base">
+      <p className="max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
         {description}
       </p>
     </header>
@@ -44,10 +44,10 @@ export function PageHeading({ eyebrow, title, description }: PageHeadingProps) {
 }
 
 export const inputClassName =
-  "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10";
+  "w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/15";
 
 export const labelClassName =
-  "block space-y-2 text-xs font-bold uppercase tracking-wide text-slate-400";
+  "block space-y-2 text-xs font-semibold uppercase tracking-wide text-slate-600";
 
 export const cardClassName =
-  "rounded-2xl border border-slate-800 bg-slate-900/60 p-5";
+  "rounded-lg border border-slate-200 bg-white p-5 shadow-sm";

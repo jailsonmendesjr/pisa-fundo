@@ -22,9 +22,8 @@ export function StandingsMetricHeader({ label, metric }: StandingsMetricHeaderPr
           aria-label={label}
           aria-describedby={isOpen ? tooltipId : undefined}
           aria-expanded={isOpen}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-500 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           onClick={() => setIsOpen((open) => !open)}
-          onBlur={() => setIsOpen(false)}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               setIsOpen(false);
@@ -38,13 +37,9 @@ export function StandingsMetricHeader({ label, metric }: StandingsMetricHeaderPr
           <span
             id={tooltipId}
             role="tooltip"
-            className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-semibold normal-case tracking-normal text-slate-950 shadow-lg"
+            className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-950 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-white shadow-lg"
           >
             {label}
-            <span
-              aria-hidden="true"
-              className="absolute bottom-full left-1/2 -translate-x-1/2 border-x-4 border-b-4 border-x-transparent border-b-slate-100"
-            />
           </span>
         ) : null}
       </span>

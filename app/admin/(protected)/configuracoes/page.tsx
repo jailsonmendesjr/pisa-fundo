@@ -27,9 +27,9 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
       <section className={`${cardClassName} max-w-2xl`}>
         <div className="mb-6 space-y-2">
-          <h2 className="text-xl font-black text-white">Senha administrativa</h2>
-          <p className="text-sm leading-6 text-slate-400">
-            A senha ficará vinculada à conta <strong className="text-slate-200">{admin.email}</strong> no Supabase Auth. Ela não será armazenada nas tabelas do campeonato.
+          <h2 className="text-xl font-black text-slate-950">Senha administrativa</h2>
+          <p className="text-sm leading-6 text-slate-500">
+            A senha ficará vinculada à conta <strong className="text-slate-900">{admin.email}</strong> no Supabase Auth. Ela não será armazenada nas tabelas do campeonato.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
               className={inputClassName}
             />
           </label>
-          <div className="flex flex-col gap-3 border-t border-slate-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-slate-500">
               Use pelo menos 8 caracteres. Um gerenciador de senhas é recomendado.
             </p>
