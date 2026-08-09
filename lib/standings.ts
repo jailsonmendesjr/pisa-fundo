@@ -43,6 +43,32 @@ export interface DriverPerformanceData {
   dataPositions: (number | null)[];
 }
 
+export interface RoundResultEntry {
+  id: number;
+  position: number;
+  status: ResultStatus;
+  fastestLap: boolean;
+  hasPenalty: boolean;
+  penaltyReason: string;
+  points: number;
+  driverName: string;
+  teamName: string;
+  teamColor: string;
+  carNumber: number | null;
+  isGuest: boolean;
+}
+
+export interface RoundResultData {
+  round: {
+    id: number;
+    order: number;
+    name: string;
+    date: string;
+    location: string;
+  };
+  results: RoundResultEntry[];
+}
+
 export async function calculateStandings(
   supabase: AppSupabaseClient,
   seasonId: number,
@@ -215,7 +241,8 @@ export async function getRoundsWithWinners(supabase: AppSupabaseClient, seasonId
     .from("championship_round")
     .select("id, order, name, date, location")
     .eq("season_id", seasonId)
-    .order("order", { ascending: true });
+    .order("date", { ascending: false })
+    .order("order", { ascending: false });
 
   if (rErr) throw rErr;
   const targetRounds = rounds || [];
@@ -241,6 +268,66 @@ export async function getRoundsWithWinners(supabase: AppSupabaseClient, seasonId
     ...round,
     winner: winners[String(round.id)] ?? null,
   }));
+}
+
+export async function getRoundResult(
+  supabase: AppSupabaseClient,
+  seasonId: number,
+  roundId: number
+): Promise<RoundResultData | null> {
+  const { data: round, error: roundError } = await supabase
+    .from("championship_round")
+    .select("id, order, name, date, location")
+    .eq("id", roundId)
+    .eq("season_id", seasonId)
+    .maybeSingle();
+
+  if (roundError) {
+    throw new Error(`[round] Erro ao buscar etapa: ${roundError.message}`);
+  }
+  if (!round) return null;
+
+  const { data: results, error: resultsError } = await supabase
+    .from("championship_roundresult")
+    .select(`
+      id,
+      position,
+      status,
+      fastest_lap,
+      has_penalty,
+      penalty_reason,
+      points,
+      championship_driverteamseason!entry_id (
+        car_number,
+        is_guest,
+        championship_driver ( name ),
+        championship_team ( name, primary_color )
+      )
+    `)
+    .eq("round_id", roundId)
+    .order("position", { ascending: true });
+
+  if (resultsError) {
+    throw new Error(`[round] Erro ao buscar resultados: ${resultsError.message}`);
+  }
+
+  return {
+    round,
+    results: (results ?? []).map((result) => ({
+      id: result.id,
+      position: result.position,
+      status: result.status as ResultStatus,
+      fastestLap: result.fastest_lap,
+      hasPenalty: result.has_penalty,
+      penaltyReason: result.penalty_reason,
+      points: result.points,
+      driverName: result.championship_driverteamseason.championship_driver.name,
+      teamName: result.championship_driverteamseason.championship_team.name,
+      teamColor: result.championship_driverteamseason.championship_team.primary_color,
+      carNumber: result.championship_driverteamseason.car_number,
+      isGuest: result.championship_driverteamseason.is_guest,
+    })),
+  };
 }
 
 export async function getDriversListForSeason(supabase: AppSupabaseClient, seasonId: number) {
