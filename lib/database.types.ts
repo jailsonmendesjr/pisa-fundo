@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_admins: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          email: string
+          user_id: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          email: string
+          user_id?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          email?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       championship_driver: {
         Row: {
           id: number
@@ -223,7 +244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      activate_championship_season: {
+        Args: { p_season_id: number }
+        Returns: undefined
+      }
+      replace_round_results: {
+        Args: { p_results: Json; p_round_id: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

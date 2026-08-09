@@ -33,6 +33,9 @@ export default function RootLayout({
               <Link href="/" className="text-sm font-semibold text-slate-300 hover:text-amber-500 transition-colors">
                 Temporadas
               </Link>
+              <Link href="/admin" className="text-sm font-semibold text-slate-500 hover:text-amber-500 transition-colors">
+                Admin
+              </Link>
             </nav>
           </div>
         </header>
