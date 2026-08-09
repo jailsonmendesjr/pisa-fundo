@@ -33,7 +33,7 @@ export default async function TeamsAdminPage({ searchParams }: PageProps) {
       <Notice success={query.success} error={query.error} />
 
       <section className={cardClassName}>
-        <h2 className="mb-5 text-lg font-black text-white">Nova equipe</h2>
+        <h2 className="mb-5 text-lg font-black text-slate-950">Nova equipe</h2>
         <form action={createTeam} className="grid gap-4 lg:grid-cols-2">
           <label className={labelClassName}>
             Nome
@@ -55,10 +55,10 @@ export default async function TeamsAdminPage({ searchParams }: PageProps) {
         {(teams ?? []).map((team) => (
           <section key={team.id} className={cardClassName}>
             <div className="mb-5 flex items-center gap-3">
-              <span className="h-8 w-8 rounded-full border border-white/10" style={{ background: team.primary_color }} />
-              <span className="h-8 w-8 rounded-full border border-white/10" style={{ background: team.secondary_color }} />
+              <span className="h-8 w-8 rounded-full border border-slate-200" style={{ background: team.primary_color }} />
+              <span className="h-8 w-8 rounded-full border border-slate-200" style={{ background: team.secondary_color }} />
               <div>
-                <h2 className="font-black text-white">{team.name}</h2>
+                <h2 className="font-black text-slate-950">{team.name}</h2>
                 <p className="text-xs text-slate-500">ID {team.id}</p>
               </div>
             </div>

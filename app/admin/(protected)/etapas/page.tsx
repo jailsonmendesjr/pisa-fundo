@@ -84,7 +84,7 @@ export default async function RoundsAdminPage({ searchParams }: PageProps) {
               ))}
             </select>
           </label>
-          <button className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:border-amber-500">
+          <button className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-900 hover:border-red-500">
             Carregar
           </button>
         </form>
@@ -92,7 +92,7 @@ export default async function RoundsAdminPage({ searchParams }: PageProps) {
 
       {selectedSeasonId ? (
         <section className={cardClassName}>
-          <h2 className="mb-5 text-lg font-black text-white">Nova etapa</h2>
+          <h2 className="mb-5 text-lg font-black text-slate-950">Nova etapa</h2>
           <form action={createRound} className="grid gap-4 md:grid-cols-[100px_1fr_180px_1fr_auto] md:items-end">
             <input type="hidden" name="season_id" value={selectedSeasonId} />
             <RoundFields nextOrder={nextOrder} />

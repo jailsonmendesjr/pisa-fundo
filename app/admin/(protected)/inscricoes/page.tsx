@@ -67,7 +67,7 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
               ))}
             </select>
           </label>
-          <button className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:border-amber-500">
+          <button className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-900 hover:border-red-500">
             Carregar
           </button>
         </form>
@@ -75,7 +75,7 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
 
       {selectedSeasonId ? (
         <section className={cardClassName}>
-          <h2 className="mb-5 text-lg font-black text-white">Adicionar piloto ao grid</h2>
+          <h2 className="mb-5 text-lg font-black text-slate-950">Adicionar piloto ao grid</h2>
           <form action={createEntry} className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
             <input type="hidden" name="season_id" value={selectedSeasonId} />
             <label className={labelClassName}>
@@ -100,8 +100,8 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
               Número do carro
               <input name="car_number" type="number" min={0} className={inputClassName} />
             </label>
-            <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-slate-300">
-              <input name="is_guest" type="checkbox" className="h-4 w-4 accent-amber-500" />
+            <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-slate-700">
+              <input name="is_guest" type="checkbox" className="h-4 w-4 accent-red-600" />
               Piloto convidado
             </label>
             <SubmitButton>Adicionar inscrição</SubmitButton>
@@ -113,7 +113,7 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
         {(entries ?? []).map((entry) => (
           <section key={entry.id} className={cardClassName}>
             <div className="mb-4">
-              <h2 className="font-black text-white">{driverNames.get(entry.driver_id) ?? `Piloto ${entry.driver_id}`}</h2>
+              <h2 className="font-black text-slate-950">{driverNames.get(entry.driver_id) ?? `Piloto ${entry.driver_id}`}</h2>
               <p className="text-xs text-slate-500">{teamNames.get(entry.team_id)} · inscrição {entry.id}</p>
             </div>
             <form action={updateEntry} className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
@@ -139,8 +139,8 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
                 Número do carro
                 <input name="car_number" type="number" min={0} defaultValue={entry.car_number ?? ""} className={inputClassName} />
               </label>
-              <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-slate-300">
-                <input name="is_guest" type="checkbox" defaultChecked={entry.is_guest} className="h-4 w-4 accent-amber-500" />
+              <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-slate-700">
+                <input name="is_guest" type="checkbox" defaultChecked={entry.is_guest} className="h-4 w-4 accent-red-600" />
                 Convidado
               </label>
               <SubmitButton>Salvar inscrição</SubmitButton>
@@ -148,7 +148,7 @@ export default async function EntriesAdminPage({ searchParams }: PageProps) {
           </section>
         ))}
         {(entries ?? []).length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-500">
+          <p className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
             Nenhum piloto inscrito neste campeonato.
           </p>
         ) : null}

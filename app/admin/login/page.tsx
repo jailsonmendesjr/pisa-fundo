@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getOptionalAdmin } from "@/lib/admin/auth";
 import { sendMagicLink, signInAdminWithPassword } from "./actions";
 
@@ -25,50 +26,50 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <div className="mx-auto flex min-h-[65vh] max-w-md items-center">
-      <section className="w-full rounded-3xl border border-slate-800 bg-slate-900/70 p-7 shadow-2xl shadow-black/20 sm:p-9">
+      <section className="w-full rounded-xl border border-slate-200 bg-white p-7 shadow-lg shadow-slate-950/5 sm:p-9">
         <div className="mb-8 space-y-3">
-          <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-400">
+          <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
             Área restrita
           </span>
-          <h1 className="text-3xl font-black tracking-tight text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
             Administração
           </h1>
-          <p className="text-sm leading-6 text-slate-400">
+          <p className="text-sm leading-6 text-slate-500">
             Entre com o e-mail autorizado e sua senha do painel.
           </p>
         </div>
 
         {query.sent ? (
-          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+          <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
             Se o e-mail estiver autorizado, o link de acesso será enviado em instantes.
           </div>
         ) : null}
         {query.signedOut ? (
-          <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800/70 p-4 text-sm text-slate-300">
+          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             Sessão encerrada com segurança.
           </div>
         ) : null}
         {query.error ? (
-          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {query.error}
           </div>
         ) : null}
 
         <form action={signInAdminWithPassword} className="space-y-5">
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-200">E-mail</span>
+            <span className="text-sm font-medium text-slate-700">E-mail</span>
             <input
               name="email"
               type="email"
               autoComplete="email"
               required
               autoFocus
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
               placeholder="voce@exemplo.com"
             />
           </label>
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-200">Senha</span>
+            <span className="text-sm font-medium text-slate-700">Senha</span>
             <input
               name="password"
               type="password"
@@ -76,17 +77,17 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
               required
               minLength={8}
               maxLength={72}
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
               placeholder="Sua senha"
             />
           </label>
           <button
             type="submit"
-            className="w-full rounded-xl bg-amber-500 px-4 py-3 font-black text-slate-950 transition hover:bg-amber-400"
+            className="w-full rounded-md bg-red-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-red-700"
           >
             Entrar
           </button>
-          <div className="border-t border-slate-800 pt-5 text-center">
+          <div className="border-t border-slate-200 pt-5 text-center">
             <p className="mb-3 text-xs leading-5 text-slate-500">
               Primeiro acesso ou ainda não definiu uma senha?
             </p>
@@ -94,7 +95,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
               type="submit"
               formAction={sendMagicLink}
               formNoValidate
-              className="text-sm font-bold text-amber-500 transition hover:text-amber-400"
+              className="text-sm font-semibold text-red-600 transition hover:text-red-700"
             >
               Enviar link para definir a senha
             </button>
@@ -103,9 +104,9 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
 
         <Link
           href="/"
-          className="mt-6 block text-center text-sm font-semibold text-slate-400 transition hover:text-white"
+          className="mt-6 flex items-center justify-center gap-2 text-center text-sm font-medium text-slate-500 transition hover:text-slate-950"
         >
-          ← Voltar para o campeonato
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para o campeonato
         </Link>
       </section>
     </div>

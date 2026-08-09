@@ -32,7 +32,7 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
       <Notice success={query.success} error={query.error} />
 
       <section className={cardClassName}>
-        <h2 className="mb-5 text-lg font-black text-white">Novo campeonato</h2>
+        <h2 className="mb-5 text-lg font-black text-slate-950">Novo campeonato</h2>
         <form action={createSeason} className="grid gap-4 md:grid-cols-[1fr_160px_auto] md:items-end">
           <label className={labelClassName}>
             Nome
@@ -43,8 +43,8 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
             <input name="year" type="number" min={2000} required className={inputClassName} placeholder="2027" />
           </label>
           <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-              <input name="activate" type="checkbox" className="h-4 w-4 accent-amber-500" />
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <input name="activate" type="checkbox" className="h-4 w-4 accent-red-600" />
               Ativar ao criar
             </label>
             <SubmitButton>Criar campeonato</SubmitButton>
@@ -61,7 +61,7 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
                   ID {season.id}
                 </span>
                 {season.is_active ? (
-                  <span className="ml-3 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-300">
+                  <span className="ml-3 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                     Ativo
                   </span>
                 ) : null}
