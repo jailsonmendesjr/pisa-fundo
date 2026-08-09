@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOptionalAdmin } from "@/lib/admin/auth";
-import { sendMagicLink } from "./actions";
+import { sendMagicLink, signInAdminWithPassword } from "./actions";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -34,7 +34,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
             Administração
           </h1>
           <p className="text-sm leading-6 text-slate-400">
-            Informe o e-mail autorizado. Você receberá um link seguro para acessar o painel.
+            Entre com o e-mail autorizado e sua senha do painel.
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
           </div>
         ) : null}
 
-        <form action={sendMagicLink} className="space-y-5">
+        <form action={signInAdminWithPassword} className="space-y-5">
           <label className="block space-y-2">
             <span className="text-sm font-semibold text-slate-200">E-mail</span>
             <input
@@ -67,12 +67,38 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
               placeholder="voce@exemplo.com"
             />
           </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-slate-200">Senha</span>
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              minLength={8}
+              maxLength={72}
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+              placeholder="Sua senha"
+            />
+          </label>
           <button
             type="submit"
             className="w-full rounded-xl bg-amber-500 px-4 py-3 font-black text-slate-950 transition hover:bg-amber-400"
           >
-            Enviar link de acesso
+            Entrar
           </button>
+          <div className="border-t border-slate-800 pt-5 text-center">
+            <p className="mb-3 text-xs leading-5 text-slate-500">
+              Primeiro acesso ou ainda não definiu uma senha?
+            </p>
+            <button
+              type="submit"
+              formAction={sendMagicLink}
+              formNoValidate
+              className="text-sm font-bold text-amber-500 transition hover:text-amber-400"
+            >
+              Enviar link para definir a senha
+            </button>
+          </div>
         </form>
 
         <Link

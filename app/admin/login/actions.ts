@@ -16,6 +16,11 @@ function getRequestOrigin(headersList: Awaited<ReturnType<typeof headers>>) {
   return `${protocol}://${host}`;
 }
 
+function loginErrorDestination(message: string) {
+  const searchParams = new URLSearchParams({ error: message });
+  return `/admin/login?${searchParams.toString()}`;
+}
+
 export async function sendMagicLink(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const configuredEmail = getConfiguredAdminEmail();
@@ -31,15 +36,48 @@ export async function sendMagicLink(formData: FormData) {
     email,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      shouldCreateUser: true,
+      shouldCreateUser: false,
     },
   });
 
   if (error) {
-    redirect(`/admin/login?error=${encodeURIComponent(error.message)}`);
+    redirect(loginErrorDestination(error.message));
   }
 
   redirect("/admin/login?sent=1");
+}
+
+export async function signInAdminWithPassword(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const configuredEmail = getConfiguredAdminEmail();
+
+  if (email !== configuredEmail || !password) {
+    redirect(loginErrorDestination("E-mail ou senha inválidos."));
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error || !data.user) {
+    redirect(loginErrorDestination("E-mail ou senha inválidos."));
+  }
+
+  const { data: admin, error: adminError } = await supabase
+    .from("app_admins")
+    .select("user_id")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
+  if (adminError || !admin) {
+    await supabase.auth.signOut();
+    redirect(loginErrorDestination("Esta conta não possui acesso administrativo."));
+  }
+
+  redirect("/admin");
 }
 
 export async function signOutAdmin() {

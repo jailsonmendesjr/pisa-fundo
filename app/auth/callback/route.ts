@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     requestedNext?.startsWith("/admin/") ||
     requestedNext?.startsWith("/admin?")
       ? requestedNext
-      : "/admin";
+      : "/admin/configuracoes";
   const supabase = await createServerSupabaseClient();
 
   let authError: Error | null = null;

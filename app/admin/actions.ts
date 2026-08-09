@@ -22,6 +22,12 @@ function getErrorMessage(error: unknown) {
   if (databaseError.code === "42501") {
     return "Sua conta não possui permissão para esta alteração.";
   }
+  if (databaseError.code === "weak_password") {
+    return "Use uma senha mais forte, com pelo menos 8 caracteres.";
+  }
+  if (databaseError.code === "same_password") {
+    return "A nova senha deve ser diferente da senha atual.";
+  }
 
   return databaseError.message ?? "Não foi possível salvar a alteração.";
 }
@@ -355,6 +361,28 @@ export async function saveRoundResults(formData: FormData) {
         p_round_id: roundId,
         p_results: results,
       });
+      failIfError(error);
+    }
+  );
+}
+
+export async function updateAdminPassword(formData: FormData) {
+  await completeMutation(
+    "/admin/configuracoes",
+    "Senha atualizada. Os próximos acessos poderão usar e-mail e senha.",
+    async () => {
+      const password = String(formData.get("password") ?? "");
+      const confirmation = String(formData.get("password_confirmation") ?? "");
+
+      if (password.length < 8 || password.length > 72) {
+        throw new Error("A senha deve ter entre 8 e 72 caracteres.");
+      }
+      if (password !== confirmation) {
+        throw new Error("A confirmação da senha não corresponde.");
+      }
+
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase.auth.updateUser({ password });
       failIfError(error);
     }
   );
