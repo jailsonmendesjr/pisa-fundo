@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:legacy-import": "node scripts/generate-legacy-import.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.4",
+    "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.2",
     "next": "16.3.0",
     "react": "19.2.8",
