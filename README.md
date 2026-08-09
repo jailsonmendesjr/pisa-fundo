@@ -63,9 +63,14 @@ insert into public.app_admins (email)
 values (lower('admin@exemplo.com'));
 ```
 
-No primeiro link mágico, o Supabase cria o usuário e o callback associa seu
-UUID à autorização existente. Depois desse primeiro acesso, o cadastro público
-por e-mail pode ser desabilitado no Supabase Auth.
+O login principal usa e-mail e senha do Supabase Auth. Para o primeiro acesso,
+o link mágico autentica a conta existente e leva o administrador até
+`/admin/configuracoes`, onde a senha pode ser definida sem expô-la à aplicação
+ou às tabelas públicas. O link também fica disponível como recuperação.
+
+Depois que o primeiro administrador estiver confirmado, mantenha o cadastro
+público desabilitado. O fallback usa `shouldCreateUser: false` e não cria novas
+contas.
 
 Em **Authentication > URL Configuration**, configure a URL de produção como
 Site URL e autorize `/auth/callback` para produção e desenvolvimento local.

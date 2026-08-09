@@ -10,6 +10,7 @@ const navigation = [
   ["Inscrições", "/admin/inscricoes"],
   ["Etapas", "/admin/etapas"],
   ["Resultados", "/admin/resultados"],
+  ["Configurações", "/admin/configuracoes"],
 ] as const;
 
 export const dynamic = "force-dynamic";
