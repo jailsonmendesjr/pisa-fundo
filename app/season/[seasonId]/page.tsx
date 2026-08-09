@@ -165,9 +165,11 @@ export default async function SeasonDetailPage(props: PageProps) {
               </p>
             ) : (
               rounds.map((round) => (
-                <div
+                <Link
                   key={round.id}
-                  className="bg-slate-900 border border-slate-800 rounded-lg p-5 flex flex-col justify-between shadow-lg"
+                  href={`/season/${seasonId}/round/${round.id}`}
+                  aria-label={`Ver resultado da etapa ${round.order}: ${round.name}`}
+                  className="group flex flex-col justify-between rounded-lg border border-slate-800 bg-slate-900 p-5 shadow-lg transition-colors hover:border-amber-500/50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3">
@@ -186,19 +188,24 @@ export default async function SeasonDetailPage(props: PageProps) {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 uppercase font-semibold">Vencedor:</span>
-                    {round.winner ? (
-                      <span className="text-sm font-bold text-emerald-400 flex items-center gap-1">
-                        🏆 {round.winner}
-                      </span>
-                    ) : (
-                      <span className="text-sm font-medium text-slate-500 italic">
-                        A realizar
-                      </span>
-                    )}
+                  <div className="flex items-end justify-between gap-4 border-t border-slate-800/60 pt-3">
+                    <div>
+                      <span className="text-xs font-semibold uppercase text-slate-500">Vencedor:</span>
+                      {round.winner ? (
+                        <span className="mt-1 flex items-center gap-1 text-sm font-bold text-emerald-400">
+                          🏆 {round.winner}
+                        </span>
+                      ) : (
+                        <span className="mt-1 block text-sm font-medium italic text-slate-500">
+                          A realizar
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-500 transition-transform group-hover:translate-x-1">
+                      Ver resultado →
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
