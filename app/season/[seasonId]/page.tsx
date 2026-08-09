@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { StandingsMetricHeader } from "@/components/standings-metric-header";
 import { supabase } from "@/lib/supabase";
 import { getSeasonStandingsWithChanges, getRoundsWithWinners } from "@/lib/standings";
 
@@ -144,43 +145,66 @@ export default async function SeasonDetailPage(props: PageProps) {
 
         {/* Conteúdo das Abas */}
         {activeTab === "drivers" ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+          <div className="-mx-4 sm:mx-0 bg-slate-900 border border-slate-800 rounded-none sm:rounded-lg overflow-visible sm:overflow-hidden shadow-xl">
+            <div className="overflow-visible">
+              <table className="w-full table-fixed md:table-auto text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-950 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-800">
-                    <th className="py-4 px-4 text-center w-16">Pos</th>
-                    <th className="py-4 px-3 text-center w-16">
-                      <span className="sr-only">Variação desde a última etapa</span>
+                    <th className="py-4 px-2 sm:px-4 text-center w-16 md:w-28">
+                      Pos
+                      <span className="sr-only"> e variação desde a última etapa</span>
                     </th>
-                    <th className="py-4 px-4">Piloto</th>
-                    <th className="py-4 px-4">Equipe</th>
-                    <th className="py-4 px-4 text-center w-20">Nº</th>
-                    <th className="py-4 px-4 text-center w-24">Vitórias</th>
-                    <th className="py-4 px-4 text-center w-24">Pódios</th>
-                    <th className="py-4 px-4 text-right w-24 pr-6">Pontos</th>
+                    <th className="py-4 px-2 sm:px-4">Piloto</th>
+                    <th className="hidden md:table-cell py-4 px-4">Equipe</th>
+                    <th className="py-2 px-0 sm:px-2 md:py-4 md:px-4 text-center w-11 md:w-24">
+                      <StandingsMetricHeader label="Vitórias" metric="wins" />
+                    </th>
+                    <th className="py-2 px-0 sm:px-2 md:py-4 md:px-4 text-center w-11 md:w-24">
+                      <StandingsMetricHeader label="Pódios" metric="podiums" />
+                    </th>
+                    <th className="py-4 px-2 sm:px-4 text-right w-14 sm:w-20 md:w-24 sm:pr-6">
+                      <span className="md:hidden">Pts</span>
+                      <span className="hidden md:inline">Pontos</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50 text-sm">
                   {standings.drivers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500">
+                      <td colSpan={6} className="py-8 px-4 text-center text-slate-500">
                         Nenhum piloto pontuou ou se inscreveu nesta temporada ainda.
                       </td>
                     </tr>
                   ) : (
                     standings.drivers.map((driver) => (
                         <tr key={driver.driverId} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="py-4 px-4 font-black italic text-center text-base text-slate-300">
-                            {driver.position}º
+                          <td className="py-4 px-2 sm:px-4 text-center text-slate-300">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="font-black italic text-base">{driver.position}º</span>
+                              <span className="text-xs font-bold">
+                                <PositionChange change={driver.change} />
+                              </span>
+                            </div>
                           </td>
-                          <td className="py-4 px-3 text-center text-xs font-bold">
-                            <PositionChange change={driver.change} />
+                          <td className="max-w-0 py-4 px-2 sm:px-4">
+                            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                              <span
+                                className="h-3 w-3 shrink-0 rounded-full border border-white/20 md:hidden"
+                                style={{ backgroundColor: driver.teamColor }}
+                                aria-hidden="true"
+                              />
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-white">
+                                  {driver.driverName}
+                                </div>
+                                <div className="mt-0.5 truncate text-xs leading-snug text-slate-400">
+                                  <span className="md:hidden">{driver.teamName} · </span>
+                                  #{driver.carNumber || "--"}
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                          <td className="py-4 px-4 font-semibold text-white">
-                            {driver.driverName}
-                          </td>
-                          <td className="py-4 px-4">
+                          <td className="hidden md:table-cell py-4 px-4">
                             <span
                               className="inline-flex items-center gap-2 px-2 py-1 rounded text-xs font-medium border bg-slate-950/50"
                               style={{ borderColor: driver.teamColor + "40", color: driver.teamColor }}
@@ -189,16 +213,13 @@ export default async function SeasonDetailPage(props: PageProps) {
                               {driver.teamName}
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-center font-mono text-slate-400">
-                            {driver.carNumber || "-"}
-                          </td>
-                          <td className="py-4 px-4 text-center font-medium text-slate-300">
+                          <td className="py-4 px-0 sm:px-2 md:px-4 text-center font-medium text-slate-300">
                             {driver.wins}
                           </td>
-                          <td className="py-4 px-4 text-center text-slate-300">
+                          <td className="py-4 px-0 sm:px-2 md:px-4 text-center text-slate-300">
                             {driver.podiums}
                           </td>
-                          <td className="py-4 px-4 text-right font-black text-amber-500 text-base pr-6">
+                          <td className="py-4 px-3 sm:px-4 text-right font-black text-amber-500 text-base sm:pr-6">
                             {driver.totalPoints}
                           </td>
                         </tr>
