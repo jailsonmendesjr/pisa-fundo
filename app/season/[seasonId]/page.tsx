@@ -1,17 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
   BarChart3,
   CalendarDays,
   ChevronRight,
   Circle,
   MapPin,
+  Triangle,
   Trophy,
   UsersRound,
 } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { StandingsMetricHeader } from "@/components/standings-metric-header";
 import { supabase } from "@/lib/supabase";
 import { getSeasonStandingsWithChanges, getRoundsWithWinners } from "@/lib/standings";
@@ -40,7 +39,7 @@ function PositionChange({ change = 0 }: { change?: number }) {
         aria-label={`Subiu ${changeAmount} ${positionLabel} desde a última etapa`}
         title={`Subiu ${changeAmount} ${positionLabel}`}
       >
-        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+        <Triangle className="h-2.5 w-2.5 fill-current" strokeWidth={0} aria-hidden="true" />
         {changeAmount}
       </span>
     );
@@ -53,7 +52,7 @@ function PositionChange({ change = 0 }: { change?: number }) {
         aria-label={`Caiu ${changeAmount} ${positionLabel} desde a última etapa`}
         title={`Caiu ${changeAmount} ${positionLabel}`}
       >
-        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+        <Triangle className="h-2.5 w-2.5 rotate-180 fill-current" strokeWidth={0} aria-hidden="true" />
         {changeAmount}
       </span>
     );
@@ -99,10 +98,7 @@ export default async function SeasonDetailPage(props: PageProps) {
       <div className="max-w-6xl mx-auto">
         {/* Header da Temporada */}
         <div className="mb-6 border-b border-slate-200 pb-6">
-          <Link href="/" className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Voltar para temporadas
-          </Link>
+          <BackLink href="/" className="mb-3" />
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
               <h1 className="truncate text-3xl font-bold tracking-tight text-slate-950">

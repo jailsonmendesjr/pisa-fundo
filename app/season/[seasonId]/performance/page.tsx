@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BarChart3, Circle, CircleAlert, Gauge, LineChart, LoaderCircle } from "lucide-react";
+import { BarChart3, Circle, CircleAlert, Gauge, LineChart, LoaderCircle } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { getErrorMessage } from "@/lib/errors";
 
 interface Driver {
@@ -591,12 +591,7 @@ export default function PerformancePage() {
             </p>
           </div>
           <div>
-            <Link
-              href={`/season/${seasonId}`}
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para temporada
-            </Link>
+            <BackLink href={`/season/${seasonId}`} />
           </div>
         </div>
       </header>
