@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, MapPin, Medal, Timer, Trophy, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ChevronDown,
+  MapPin,
+  Medal,
+  Timer,
+  TriangleAlert,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { getRoundResult } from "@/lib/standings";
 import { supabase } from "@/lib/supabase";
 
@@ -15,6 +25,11 @@ type PageProps = {
 
 const statusLabels: Record<string, string> = {
   COMPLETED: "Concluiu",
+  DNF: "Não concluiu",
+  DNS: "Não largou",
+};
+
+const compactStatusLabels: Record<string, string> = {
   DNF: "Não concluiu",
   DNS: "Não largou",
 };
@@ -89,46 +104,93 @@ export default async function RoundResultPage({ params }: PageProps) {
           </p>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <section className="-mx-4 overflow-hidden border-y border-slate-200 bg-white shadow-sm sm:mx-0 sm:rounded-lg sm:border-x">
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-lg font-semibold text-slate-950">Resultado da etapa</h2>
             <p className="mt-1 text-sm text-slate-500">{results.length} pilotos classificados</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full text-left text-sm">
+          <div>
+            <table className="w-full table-fixed text-left text-sm md:table-auto">
               <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-5 py-3 text-center">Pos.</th>
-                  <th className="px-5 py-3">Piloto</th>
-                  <th className="px-5 py-3">Equipe</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-center">Destaques</th>
-                  <th className="px-5 py-3 text-right">Pontos</th>
+                  <th className="w-16 px-2 py-3 text-center md:w-auto md:px-5">Pos.</th>
+                  <th className="px-1 py-3 md:px-5">Piloto</th>
+                  <th className="hidden px-5 py-3 md:table-cell">Equipe</th>
+                  <th className="hidden px-5 py-3 md:table-cell">Status</th>
+                  <th className="w-14 px-1 py-3 text-center md:w-auto md:px-5">
+                    <span className="md:hidden" aria-label="Volta rápida">V.R.</span>
+                    <span className="hidden md:inline">Volta rápida</span>
+                  </th>
+                  <th className="w-16 px-3 py-3 text-right md:w-auto md:px-5">
+                    <span className="md:hidden" aria-label="Pontos">PTS</span>
+                    <span className="hidden md:inline">Pontos</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {results.map((result) => {
                   const podium = podiumIcons[result.position];
                   const PodiumIcon = podium?.icon;
+                  const isNonFinisher = result.status === "DNF" || result.status === "DNS";
 
                   return (
-                    <tr key={result.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-4 text-center text-base font-black italic text-slate-900">
-                        <span className="inline-flex items-center justify-center gap-2">
-                          {result.position}º
+                    <tr
+                      key={result.id}
+                      className={`transition-colors hover:bg-slate-50 ${isNonFinisher ? "bg-slate-50/50" : ""}`}
+                    >
+                      <td className="px-2 py-5 text-center text-base font-black italic md:px-5 md:py-4">
+                        <span
+                          className={`inline-flex items-center justify-center gap-2 ${isNonFinisher ? "text-rose-600" : "text-slate-900"}`}
+                        >
+                          <span className="md:hidden">
+                            {isNonFinisher ? result.status : `${result.position}º`}
+                          </span>
+                          <span className="hidden md:inline">{result.position}º</span>
                           {podium && PodiumIcon && (
-                            <PodiumIcon aria-label={podium.label} className={`h-5 w-5 ${podium.className}`} />
+                            <PodiumIcon
+                              aria-label={podium.label}
+                              className={`hidden h-5 w-5 md:block ${podium.className}`}
+                            />
                           )}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-slate-950">{result.driverName}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {result.carNumber !== null ? `#${result.carNumber}` : "Sem número"}
-                          {result.isGuest ? " · convidado" : ""}
-                        </p>
+                      <td className="min-w-0 px-1 py-5 md:px-5 md:py-4">
+                        <div className="flex min-w-0 items-start gap-2.5">
+                          <span
+                            className="mt-1.5 h-3 w-3 shrink-0 rounded-full md:hidden"
+                            style={{ backgroundColor: result.teamColor }}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <p className={`font-bold leading-5 ${isNonFinisher ? "text-slate-500" : "text-slate-950"}`}>
+                              {result.driverName}
+                            </p>
+                            {isNonFinisher ? (
+                              <span className="mt-1 inline-flex rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 md:hidden">
+                                {compactStatusLabels[result.status]}
+                              </span>
+                            ) : null}
+                            {result.hasPenalty ? (
+                              <details className="group mt-2 max-w-sm">
+                                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 md:min-h-9 [&::-webkit-details-marker]:hidden">
+                                  <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+                                  Penalidade
+                                  <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+                                </summary>
+                                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs leading-5 text-amber-950">
+                                  <span className="font-semibold">Motivo:</span> {result.penaltyReason}
+                                </div>
+                              </details>
+                            ) : null}
+                            <p className="mt-1.5 truncate text-xs text-slate-500">
+                              <span className="md:hidden">{result.teamName} · </span>
+                              {result.carNumber !== null ? `#${result.carNumber}` : "Sem número"}
+                              {result.isGuest ? " · convidado" : ""}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="hidden px-5 py-4 md:table-cell">
                         <span
                           className="inline-flex items-center gap-2 rounded border bg-slate-50 px-2 py-1 text-xs font-medium"
                           style={{ borderColor: `${result.teamColor}40`, color: result.teamColor }}
@@ -137,38 +199,31 @@ export default async function RoundResultPage({ params }: PageProps) {
                           {result.teamName}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-slate-700">
+                      <td className="hidden px-5 py-4 text-slate-700 md:table-cell">
                         {statusLabels[result.status] ?? result.status}
                       </td>
-                      <td className="px-5 py-4 text-center">
-                        <div className="flex flex-wrap justify-center gap-2">
+                      <td className="px-1 py-5 text-center md:px-5 md:py-4">
+                        <div className="flex justify-center">
                           {result.fastestLap && (
                             <span
-                              className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700"
+                              className="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700"
                               aria-label="Volta rápida"
                               title="Volta rápida"
                             >
                               <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span aria-hidden="true" className="hidden sm:inline">
+                              <span aria-hidden="true" className="hidden lg:inline">
                                 Volta rápida
                               </span>
                             </span>
                           )}
-                          {result.hasPenalty && (
-                            <span
-                              className="rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700"
-                              title={result.penaltyReason}
-                            >
-                              Penalidade
-                            </span>
-                          )}
-                          {!result.fastestLap && !result.hasPenalty && (
+                          {!result.fastestLap && (
                             <span className="text-slate-400">—</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right text-base font-black text-red-600">
-                        {result.points}
+                      <td className="px-3 py-5 text-right text-base font-black text-red-600 md:px-5 md:py-4">
+                        <span className="md:hidden">{isNonFinisher ? "—" : `+${result.points}`}</span>
+                        <span className="hidden md:inline">{result.points}</span>
                       </td>
                     </tr>
                   );
