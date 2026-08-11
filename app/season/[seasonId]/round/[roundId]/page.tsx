@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronDown,
   MapPin,
@@ -11,6 +9,7 @@ import {
   Trophy,
   type LucideIcon,
 } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { getRoundResult } from "@/lib/standings";
 import { supabase } from "@/lib/supabase";
 
@@ -79,13 +78,7 @@ export default async function RoundResultPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header className="border-b border-slate-200 pb-6">
-        <Link
-          href={`/season/${seasonId}?tab=calendar`}
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Voltar para o calendário
-        </Link>
+        <BackLink href={`/season/${seasonId}?tab=calendar`} className="mb-4" />
         <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">
           {season.name} · Etapa {round.order}
         </p>

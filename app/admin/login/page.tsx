@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { getOptionalAdmin } from "@/lib/admin/auth";
 import { sendMagicLink, signInAdminWithPassword } from "./actions";
 
@@ -102,12 +101,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
           </div>
         </form>
 
-        <Link
-          href="/"
-          className="mt-6 flex items-center justify-center gap-2 text-center text-sm font-medium text-slate-500 transition hover:text-slate-950"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para o campeonato
-        </Link>
+        <BackLink href="/" className="mt-6" />
       </section>
     </div>
   );
