@@ -72,6 +72,9 @@ export default async function RoundResultPage({ params }: PageProps) {
 
   const { round, results } = roundData;
   const season = seasonResponse.data;
+  const classifiedDriversCount = results.filter(
+    (result) => result.status === "COMPLETED" || result.status === "DNF"
+  ).length;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -107,7 +110,10 @@ export default async function RoundResultPage({ params }: PageProps) {
         <section className="-mx-4 overflow-hidden border-y border-slate-200 bg-white shadow-sm sm:mx-0 sm:rounded-lg sm:border-x">
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-lg font-semibold text-slate-950">Resultado da etapa</h2>
-            <p className="mt-1 text-sm text-slate-500">{results.length} pilotos classificados</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {classifiedDriversCount}{" "}
+              {classifiedDriversCount === 1 ? "piloto classificado" : "pilotos classificados"}
+            </p>
           </div>
           <div>
             <table className="w-full table-fixed text-left text-sm md:table-auto">
@@ -184,7 +190,7 @@ export default async function RoundResultPage({ params }: PageProps) {
                             ) : null}
                             <p className="mt-1.5 truncate text-xs text-slate-500">
                               <span className="md:hidden">{result.teamName} · </span>
-                              {result.carNumber !== null ? `#${result.carNumber}` : "Sem número"}
+                              #{result.carNumber || "--"}
                               {result.isGuest ? " · convidado" : ""}
                             </p>
                           </div>
