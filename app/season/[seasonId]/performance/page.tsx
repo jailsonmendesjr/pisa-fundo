@@ -37,11 +37,11 @@ interface PerformanceApiResponse {
   error?: string;
 }
 
-interface LoadedComparison {
+interface LoadedPerformance {
   key: string;
   data: {
     p1: DriverPerformanceData;
-    p2: DriverPerformanceData;
+    p2?: DriverPerformanceData;
   };
 }
 
@@ -54,8 +54,8 @@ export default function PerformancePage() {
   const [p2, setP2] = useState<string>("");
 
   const [loadingDrivers, setLoadingDrivers] = useState(true);
-  const [loadingComparisonKey, setLoadingComparisonKey] = useState<string | null>(null);
-  const [loadedComparison, setLoadedComparison] = useState<LoadedComparison | null>(null);
+  const [loadingPerformanceKey, setLoadingPerformanceKey] = useState<string | null>(null);
+  const [loadedPerformance, setLoadedPerformance] = useState<LoadedPerformance | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -63,12 +63,12 @@ export default function PerformancePage() {
   const [hoveredPointsIndex, setHoveredPointsIndex] = useState<number | null>(null);
   const [hoveredPosIndex, setHoveredPosIndex] = useState<number | null>(null);
 
-  const comparisonKey = seasonId && p1 && p2 && p1 !== p2
-    ? `${seasonId}:${p1}:${p2}`
+  const performanceKey = seasonId && p1 && p1 !== p2
+    ? `${seasonId}:${p1}:${p2 || "individual"}`
     : null;
-  const loadingPerformance = comparisonKey !== null && loadingComparisonKey === comparisonKey;
-  const performanceData = comparisonKey !== null && loadedComparison?.key === comparisonKey
-    ? loadedComparison.data
+  const loadingPerformance = performanceKey !== null && loadingPerformanceKey === performanceKey;
+  const performanceData = performanceKey !== null && loadedPerformance?.key === performanceKey
+    ? loadedPerformance.data
     : null;
 
   // 1. Carrega dados iniciais da temporada e lista de pilotos
@@ -105,17 +105,20 @@ export default function PerformancePage() {
     return () => controller.abort();
   }, [seasonId]);
 
-  // 2. Busca dados de performance dos pilotos selecionados
+  // 2. Busca dados individuais ou comparativos dos pilotos selecionados
   useEffect(() => {
-    if (!comparisonKey) return;
-    const key = comparisonKey;
+    if (!performanceKey) return;
+    const key = performanceKey;
     const controller = new AbortController();
 
     async function loadPerformance() {
-      setLoadingComparisonKey(key);
+      setLoadingPerformanceKey(key);
       setError(null);
       try {
-        const res = await fetch(`/api/seasons/${seasonId}/performance?p1=${p1}&p2=${p2}`, {
+        const searchParams = new URLSearchParams({ p1 });
+        if (p2) searchParams.set("p2", p2);
+
+        const res = await fetch(`/api/seasons/${seasonId}/performance?${searchParams}`, {
           signal: controller.signal,
         });
         const data = (await res.json()) as PerformanceApiResponse;
@@ -124,23 +127,23 @@ export default function PerformancePage() {
           throw new Error(data.error || "Erro na busca dos dados.");
         }
 
-        if (!data.p1 || !data.p2) {
-          throw new Error("Resposta incompleta ao carregar a análise comparativa.");
+        if (!data.p1 || (p2 && !data.p2)) {
+          throw new Error("Resposta incompleta ao carregar a análise de performance.");
         }
 
-        setLoadedComparison({ key, data: { p1: data.p1, p2: data.p2 } });
+        setLoadedPerformance({ key, data: { p1: data.p1, p2: data.p2 } });
       } catch (error: unknown) {
         if (controller.signal.aborted) return;
         console.error(error);
-        setError(getErrorMessage(error) || "Erro ao carregar a análise comparativa.");
+        setError(getErrorMessage(error) || "Erro ao carregar a análise de performance.");
       } finally {
-        if (!controller.signal.aborted) setLoadingComparisonKey(null);
+        if (!controller.signal.aborted) setLoadingPerformanceKey(null);
       }
     }
 
     loadPerformance();
     return () => controller.abort();
-  }, [comparisonKey, p1, p2, seasonId]);
+  }, [performanceKey, p1, p2, seasonId]);
 
   // Helpers para desenhar o gráfico SVG
   const paddingLeft = 50;
@@ -153,11 +156,11 @@ export default function PerformancePage() {
   // -------------------------------------------------------------
   // Renderizadores dos gráficos SVG
   // -------------------------------------------------------------
-  const renderPointsChart = (d1: DriverPerformanceData, d2: DriverPerformanceData) => {
+  const renderPointsChart = (d1: DriverPerformanceData, d2?: DriverPerformanceData) => {
     const totalRounds = d1.labels.length;
     if (totalRounds === 0) return null;
 
-    const maxPoints = Math.max(...d1.dataPoints, ...d2.dataPoints, 10);
+    const maxPoints = Math.max(...d1.dataPoints, ...(d2?.dataPoints ?? []), 10);
 
     const getX = (idx: number) =>
       paddingLeft + (totalRounds > 1 ? (idx / (totalRounds - 1)) * chartWidth : 0);
@@ -166,17 +169,21 @@ export default function PerformancePage() {
 
     // Coordenadas das linhas
     const coords1 = d1.dataPoints.map((pts, idx) => ({ x: getX(idx), y: getY(pts), pts }));
-    const coords2 = d2.dataPoints.map((pts, idx) => ({ x: getX(idx), y: getY(pts), pts }));
+    const coords2 = d2
+      ? d2.dataPoints.map((pts, idx) => ({ x: getX(idx), y: getY(pts), pts }))
+      : [];
 
     // Paths
     const pathD1 = coords1.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
-    const pathD2 = coords2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
+    const pathD2 = d2
+      ? coords2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ")
+      : "";
 
     // Areas preenchidas (gradientes)
     const areaD1 = totalRounds > 0
       ? `${pathD1} L ${coords1[totalRounds - 1].x} ${paddingTop + chartHeight} L ${coords1[0].x} ${paddingTop + chartHeight} Z`
       : "";
-    const areaD2 = totalRounds > 0
+    const areaD2 = d2 && totalRounds > 0
       ? `${pathD2} L ${coords2[totalRounds - 1].x} ${paddingTop + chartHeight} L ${coords2[0].x} ${paddingTop + chartHeight} Z`
       : "";
 
@@ -186,25 +193,38 @@ export default function PerformancePage() {
     return (
       <div className="relative">
         {/* Info dinâmica no topo do gráfico */}
-        <div className="flex items-center justify-between mb-4 h-10 border-b border-slate-200 pb-2">
-          <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-            {hoverIdx !== null ? `Etapa ${d1.labels[hoverIdx]}` : "Passe o mouse no gráfico"}
-          </div>
-          <div className="flex gap-4 text-xs font-semibold">
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2.5 w-2.5 fill-current" style={{ color: d1.teamColor || "#ef4444" }} aria-hidden="true" />
-              <span className="text-slate-700">{d1.name}:</span>
-              <span className="text-slate-950 font-bold">
+        <div className="mb-4 border-b border-slate-200 pb-4">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {hoverIdx !== null ? (
+              `Etapa ${d1.labels[hoverIdx]}`
+            ) : (
+              <>
+                <span className="hidden sm:inline">Passe o mouse no gráfico</span>
+                <span className="sm:hidden">Toque nos pontos do gráfico</span>
+              </>
+            )}
+          </p>
+          <div className={`grid gap-2 ${d2 ? "sm:grid-cols-2" : ""}`}>
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold">
+              <span className="flex min-w-0 items-center gap-2">
+                <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: d1.teamColor || "#ef4444" }} aria-hidden="true" />
+                <span className="break-words leading-4 text-slate-700">{d1.name}</span>
+              </span>
+              <span className="shrink-0 font-bold text-slate-950">
                 {hoverIdx !== null ? `${d1.dataPoints[hoverIdx]} pts` : `${d1.totalPoints} pts`}
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2.5 w-2.5 fill-current" style={{ color: d2.teamColor || "#3b82f6" }} aria-hidden="true" />
-              <span className="text-slate-700">{d2.name}:</span>
-              <span className="text-slate-950 font-bold">
-                {hoverIdx !== null ? `${d2.dataPoints[hoverIdx]} pts` : `${d2.totalPoints} pts`}
-              </span>
-            </div>
+            {d2 && (
+              <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: d2.teamColor || "#3b82f6" }} aria-hidden="true" />
+                  <span className="break-words leading-4 text-slate-700">{d2.name}</span>
+                </span>
+                <span className="shrink-0 font-bold text-slate-950">
+                  {hoverIdx !== null ? `${d2.dataPoints[hoverIdx]} pts` : `${d2.totalPoints} pts`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -214,10 +234,12 @@ export default function PerformancePage() {
               <stop offset="0%" stopColor={d1.teamColor || "#ef4444"} stopOpacity="0.25" />
               <stop offset="100%" stopColor={d1.teamColor || "#ef4444"} stopOpacity="0.0" />
             </linearGradient>
-            <linearGradient id="p2-area-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={d2.teamColor || "#3b82f6"} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={d2.teamColor || "#3b82f6"} stopOpacity="0.0" />
-            </linearGradient>
+            {d2 && (
+              <linearGradient id="p2-area-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={d2.teamColor || "#3b82f6"} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={d2.teamColor || "#3b82f6"} stopOpacity="0.0" />
+              </linearGradient>
+            )}
           </defs>
 
           {/* Linhas de Grade Verticais */}
@@ -286,14 +308,16 @@ export default function PerformancePage() {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d={pathD2}
-            fill="none"
-            stroke={d2.teamColor || "#3b82f6"}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {d2 && (
+            <path
+              d={pathD2}
+              fill="none"
+              stroke={d2.teamColor || "#3b82f6"}
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
 
           {/* Linha vertical sob hover */}
           {hoverIdx !== null && (
@@ -323,7 +347,7 @@ export default function PerformancePage() {
           ))}
 
           {/* Círculos nos pontos de dados (Piloto 2) */}
-          {coords2.map((pt, idx) => (
+          {d2 && coords2.map((pt, idx) => (
             <circle
               key={`p2-${idx}`}
               cx={pt.x}
@@ -350,8 +374,14 @@ export default function PerformancePage() {
                 height={chartHeight}
                 fill="transparent"
                 className="cursor-pointer"
+                tabIndex={0}
+                role="button"
+                aria-label={`Exibir dados da etapa ${d1.labels[idx]}`}
                 onMouseEnter={() => setHoveredPointsIndex(idx)}
                 onMouseLeave={() => setHoveredPointsIndex(null)}
+                onFocus={() => setHoveredPointsIndex(idx)}
+                onBlur={() => setHoveredPointsIndex(null)}
+                onClick={() => setHoveredPointsIndex(idx)}
               />
             );
           })}
@@ -360,12 +390,12 @@ export default function PerformancePage() {
     );
   };
 
-  const renderPositionChart = (d1: DriverPerformanceData, d2: DriverPerformanceData) => {
+  const renderPositionChart = (d1: DriverPerformanceData, d2?: DriverPerformanceData) => {
     const totalRounds = d1.labels.length;
     if (totalRounds === 0) return null;
 
     // Coleta posições não nulas para definir a escala Y invertida
-    const allPos = [...d1.dataPositions, ...d2.dataPositions].filter(
+    const allPos = [...d1.dataPositions, ...(d2?.dataPositions ?? [])].filter(
       (p): p is number => p !== null
     );
     const maxPos = allPos.length > 0 ? Math.max(...allPos, 10) : 10;
@@ -384,13 +414,17 @@ export default function PerformancePage() {
       .map((pos, idx) => ({ x: getX(idx), y: getY(pos), pos, idx }))
       .filter((pt) => pt.pos !== null) as Array<{ x: number; y: number; pos: number; idx: number }>;
 
-    const coords2 = d2.dataPositions
-      .map((pos, idx) => ({ x: getX(idx), y: getY(pos), pos, idx }))
-      .filter((pt) => pt.pos !== null) as Array<{ x: number; y: number; pos: number; idx: number }>;
+    const coords2 = d2
+      ? d2.dataPositions
+          .map((pos, idx) => ({ x: getX(idx), y: getY(pos), pos, idx }))
+          .filter((pt) => pt.pos !== null) as Array<{ x: number; y: number; pos: number; idx: number }>
+      : [];
 
     // Paths
     const pathD1 = coords1.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
-    const pathD2 = coords2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
+    const pathD2 = d2
+      ? coords2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ")
+      : "";
 
     // Info do hover
     const hoverIdx = hoveredPosIndex;
@@ -410,25 +444,38 @@ export default function PerformancePage() {
     return (
       <div className="relative">
         {/* Info dinâmica no topo do gráfico */}
-        <div className="flex items-center justify-between mb-4 h-10 border-b border-slate-200 pb-2">
-          <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-            {hoverIdx !== null ? `Etapa ${d1.labels[hoverIdx]}` : "Passe o mouse no gráfico"}
-          </div>
-          <div className="flex gap-4 text-xs font-semibold">
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2.5 w-2.5 fill-current" style={{ color: d1.teamColor || "#ef4444" }} aria-hidden="true" />
-              <span className="text-slate-700">{d1.name}:</span>
-              <span className="text-slate-950 font-bold">
-                {hoverIdx !== null ? getHoverValue(d1) : `Melhor: P${d1.bestPosition}`}
+        <div className="mb-4 border-b border-slate-200 pb-4">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {hoverIdx !== null ? (
+              `Etapa ${d1.labels[hoverIdx]}`
+            ) : (
+              <>
+                <span className="hidden sm:inline">Passe o mouse no gráfico</span>
+                <span className="sm:hidden">Toque nos pontos do gráfico</span>
+              </>
+            )}
+          </p>
+          <div className={`grid gap-2 ${d2 ? "sm:grid-cols-2" : ""}`}>
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold">
+              <span className="flex min-w-0 items-center gap-2">
+                <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: d1.teamColor || "#ef4444" }} aria-hidden="true" />
+                <span className="break-words leading-4 text-slate-700">{d1.name}</span>
+              </span>
+              <span className="shrink-0 font-bold text-slate-950">
+                {hoverIdx !== null ? getHoverValue(d1) : `Melhor: ${d1.bestPosition === "-" ? "-" : `P${d1.bestPosition}`}`}
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2.5 w-2.5 fill-current" style={{ color: d2.teamColor || "#3b82f6" }} aria-hidden="true" />
-              <span className="text-slate-700">{d2.name}:</span>
-              <span className="text-slate-950 font-bold">
-                {hoverIdx !== null ? getHoverValue(d2) : `Melhor: P${d2.bestPosition}`}
-              </span>
-            </div>
+            {d2 && (
+              <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: d2.teamColor || "#3b82f6" }} aria-hidden="true" />
+                  <span className="break-words leading-4 text-slate-700">{d2.name}</span>
+                </span>
+                <span className="shrink-0 font-bold text-slate-950">
+                  {hoverIdx !== null ? getHoverValue(d2) : `Melhor: ${d2.bestPosition === "-" ? "-" : `P${d2.bestPosition}`}`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -496,14 +543,16 @@ export default function PerformancePage() {
           />
 
           {/* Linha do Gráfico Piloto 2 */}
-          <path
-            d={pathD2}
-            fill="none"
-            stroke={d2.teamColor || "#3b82f6"}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {d2 && (
+            <path
+              d={pathD2}
+              fill="none"
+              stroke={d2.teamColor || "#3b82f6"}
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
 
           {/* Linha vertical sob hover */}
           {hoverIdx !== null && (
@@ -533,7 +582,7 @@ export default function PerformancePage() {
           ))}
 
           {/* Círculos nos pontos de dados (Piloto 2) */}
-          {coords2.map((pt) => (
+          {d2 && coords2.map((pt) => (
             <circle
               key={`p2-pos-${pt.idx}`}
               cx={pt.x}
@@ -560,8 +609,14 @@ export default function PerformancePage() {
                 height={chartHeight}
                 fill="transparent"
                 className="cursor-pointer"
+                tabIndex={0}
+                role="button"
+                aria-label={`Exibir posição na etapa ${d1.labels[idx]}`}
                 onMouseEnter={() => setHoveredPosIndex(idx)}
                 onMouseLeave={() => setHoveredPosIndex(null)}
+                onFocus={() => setHoveredPosIndex(idx)}
+                onBlur={() => setHoveredPosIndex(null)}
+                onClick={() => setHoveredPosIndex(idx)}
               />
             );
           })}
@@ -587,7 +642,7 @@ export default function PerformancePage() {
               </h1>
             </div>
             <p className="text-slate-500 text-sm mt-1">
-              Análise gráfica e comparação direta de performance entre pilotos.
+              Analise um piloto ou compare a evolução de dois competidores etapa a etapa.
             </p>
           </div>
           <div>
@@ -604,17 +659,17 @@ export default function PerformancePage() {
         )}
 
         {/* Seleção de Pilotos */}
-        <section className="bg-white p-6 rounded-lg border border-slate-200 mb-8  shadow-sm">
+        <section className="mb-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950">
             <Gauge className="h-4 w-4 text-red-600" aria-hidden="true" />
-            Selecione dois pilotos para comparar
+            Selecione um piloto para analisar
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
             {/* Piloto 1 */}
             <div>
               <label htmlFor="p1-select" className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                Piloto 1
+                Piloto principal
               </label>
               <select
                 id="p1-select"
@@ -635,7 +690,7 @@ export default function PerformancePage() {
             {/* Piloto 2 */}
             <div>
               <label htmlFor="p2-select" className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                Piloto 2
+                Comparar com <span className="normal-case tracking-normal font-medium">(opcional)</span>
               </label>
               <select
                 id="p2-select"
@@ -644,7 +699,7 @@ export default function PerformancePage() {
                 disabled={loadingDrivers}
                 className="w-full cursor-pointer rounded-md border border-slate-200 bg-white px-4 py-3 font-medium text-slate-950 shadow-sm transition-colors focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/15 disabled:opacity-50"
               >
-                <option value="">Selecione o piloto...</option>
+                <option value="">Nenhum (análise individual)</option>
                 {drivers.map((d) => (
                   <option key={d.driverId} value={d.driverId} disabled={d.driverId === p1}>
                     {d.driverName} {d.isGuest ? "(Convidado)" : ""}
@@ -657,11 +712,11 @@ export default function PerformancePage() {
 
         {/* Loading ou Tela Vazia */}
         {!performanceData && !loadingPerformance && (
-          <div className="text-center py-20 bg-white rounded-lg border border-slate-200 border-dashed">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-14 text-center sm:py-20">
             <p className="text-slate-500 text-sm font-medium max-w-sm mx-auto leading-relaxed">
               {p1 === p2 && p1 !== ""
                 ? "Por favor, selecione dois pilotos diferentes para realizar a comparação."
-                : "Selecione ambos os pilotos nos dropdowns acima para renderizar os gráficos de performance e estatísticas."}
+                : "Selecione o piloto principal para visualizar os gráficos e o resumo da temporada."}
             </p>
           </div>
         )}
@@ -670,7 +725,7 @@ export default function PerformancePage() {
           <div className="flex flex-col items-center justify-center py-32">
             <LoaderCircle className="mb-4 h-10 w-10 animate-spin text-red-600" aria-hidden="true" />
             <p className="text-slate-500 text-xs font-bold uppercase tracking-wider animate-pulse">
-              Processando dados de performance...
+              Carregando dados de performance...
             </p>
           </div>
         )}
@@ -678,11 +733,59 @@ export default function PerformancePage() {
         {/* Gráficos e Comparativos */}
         {performanceData && !loadingPerformance && (
           <div className="space-y-8 animate-fade-in">
+            {!performanceData.p2 && (
+              <section aria-labelledby="season-summary-title">
+                <div className="mb-4">
+                  <h2 id="season-summary-title" className="text-lg font-bold text-slate-950">
+                    Raio-X da temporada
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Principais números de {performanceData.p1.name} na temporada.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <article
+                    className="rounded-lg border border-slate-200 border-t-[3px] bg-white p-4 shadow-sm sm:p-5"
+                    style={{ borderTopColor: performanceData.p1.teamColor || "#dc2626" }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Pontos</p>
+                    <p className="mt-2 text-2xl font-black text-slate-950">{performanceData.p1.totalPoints}</p>
+                  </article>
+                  <article
+                    className="rounded-lg border border-slate-200 border-t-[3px] bg-white p-4 shadow-sm sm:p-5"
+                    style={{ borderTopColor: performanceData.p1.teamColor || "#dc2626" }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Melhor posição</p>
+                    <p className="mt-2 text-2xl font-black text-slate-950">
+                      {performanceData.p1.bestPosition === "-" ? "-" : `P${performanceData.p1.bestPosition}`}
+                    </p>
+                  </article>
+                  <article
+                    className="rounded-lg border border-slate-200 border-t-[3px] bg-white p-4 shadow-sm sm:p-5"
+                    style={{ borderTopColor: performanceData.p1.teamColor || "#dc2626" }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Voltas rápidas</p>
+                    <p className="mt-2 text-2xl font-black text-slate-950">{performanceData.p1.fastLaps}</p>
+                  </article>
+                  <article
+                    className="rounded-lg border border-slate-200 border-t-[3px] bg-white p-4 shadow-sm sm:p-5"
+                    style={{ borderTopColor: performanceData.p1.teamColor || "#dc2626" }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Equipe</p>
+                    <p className="mt-2 break-words text-base font-bold leading-tight text-slate-950 sm:text-lg">
+                      {performanceData.p1.teamName || "Sem equipe"}
+                    </p>
+                  </article>
+                </div>
+              </section>
+            )}
+
             {/* Gráficos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Gráfico 1 */}
-              <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm ">
-                <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-950">
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950 sm:mb-6">
                   <LineChart className="h-4 w-4 text-red-600" aria-hidden="true" />
                   Evolução Cumulativa de Pontos
                 </h3>
@@ -690,8 +793,8 @@ export default function PerformancePage() {
               </div>
 
               {/* Gráfico 2 */}
-              <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm ">
-                <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-950">
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-950 sm:mb-6">
                   <BarChart3 className="h-4 w-4 text-red-600" aria-hidden="true" />
                   Posição de Chegada por Etapa
                 </h3>
@@ -700,28 +803,35 @@ export default function PerformancePage() {
             </div>
 
             {/* Cards Comparativos de Estatísticas */}
-            <section className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm ">
+            {performanceData.p2 && (
+            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <h3 className="mb-6 flex items-center gap-2 border-b border-slate-200 pb-3 text-sm font-semibold text-slate-950">
                 <Gauge className="h-4 w-4 text-red-600" aria-hidden="true" />
                 Resumo Estatístico Comparativo
               </h3>
 
-              <div className="space-y-8">
-                {/* 1. Total de Pontos */}
+              <div className="space-y-6">
                 <div>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {performanceData.p1.name} ({performanceData.p1.totalPoints} pts)
-                    </span>
-                    <span className="text-xs font-extrabold text-slate-950 uppercase tracking-wider">
-                      Total de Pontos
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {performanceData.p2.name} ({performanceData.p2.totalPoints} pts)
-                    </span>
+                  <h4 className="mb-3 text-center text-xs font-extrabold uppercase tracking-wider text-slate-950">
+                    Total de pontos
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
+                        <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: performanceData.p1.teamColor || "#ef4444" }} aria-hidden="true" />
+                        <span className="break-words leading-4">{performanceData.p1.name}</span>
+                      </span>
+                      <strong className="shrink-0 text-sm text-slate-950">{performanceData.p1.totalPoints} pts</strong>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
+                        <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: performanceData.p2.teamColor || "#3b82f6" }} aria-hidden="true" />
+                        <span className="break-words leading-4">{performanceData.p2.name}</span>
+                      </span>
+                      <strong className="shrink-0 text-sm text-slate-950">{performanceData.p2.totalPoints} pts</strong>
+                    </div>
                   </div>
-                  {/* Barra comparativa de Pontos */}
-                  <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden flex">
+                  <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-slate-50" aria-label="Proporção do total de pontos">
                     {performanceData.p1.totalPoints === 0 && performanceData.p2.totalPoints === 0 ? (
                       <div className="w-full bg-slate-200" />
                     ) : (
@@ -729,22 +839,14 @@ export default function PerformancePage() {
                         <div
                           className="h-full transition-all duration-500"
                           style={{
-                            width: `${
-                              (performanceData.p1.totalPoints /
-                                (performanceData.p1.totalPoints + performanceData.p2.totalPoints)) *
-                              100
-                            }%`,
+                            width: `${(performanceData.p1.totalPoints / (performanceData.p1.totalPoints + performanceData.p2.totalPoints)) * 100}%`,
                             backgroundColor: performanceData.p1.teamColor || "#ef4444",
                           }}
                         />
                         <div
                           className="h-full transition-all duration-500"
                           style={{
-                            width: `${
-                              (performanceData.p2.totalPoints /
-                                (performanceData.p1.totalPoints + performanceData.p2.totalPoints)) *
-                              100
-                            }%`,
+                            width: `${(performanceData.p2.totalPoints / (performanceData.p1.totalPoints + performanceData.p2.totalPoints)) * 100}%`,
                             backgroundColor: performanceData.p2.teamColor || "#3b82f6",
                           }}
                         />
@@ -753,77 +855,56 @@ export default function PerformancePage() {
                   </div>
                 </div>
 
-                {/* 2. Melhor Posição */}
-                <div className="grid grid-cols-3 items-center py-2 border-t border-slate-200">
-                  <div className="text-center">
-                    <span
-                      className={`inline-flex items-center justify-center w-12 h-12 rounded-md text-lg font-black ${
-                        performanceData.p1.bestPosition !== "-" &&
-                        (performanceData.p2.bestPosition === "-" ||
-                          Number(performanceData.p1.bestPosition) <= Number(performanceData.p2.bestPosition))
-                          ? "bg-red-600 text-white shadow-lg shadow-red-500/10"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {performanceData.p1.bestPosition !== "-"
-                        ? `P${performanceData.p1.bestPosition}`
-                        : "-"}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-wider">
-                      {performanceData.p1.bestPosition !== "-" &&
-                      (performanceData.p2.bestPosition === "-" ||
-                        Number(performanceData.p1.bestPosition) < Number(performanceData.p2.bestPosition))
-                        ? "Melhor"
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-xs font-extrabold text-slate-950 uppercase tracking-wider block">
-                      Melhor Posição
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">
-                      (Menor Posição)
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <span
-                      className={`inline-flex items-center justify-center w-12 h-12 rounded-md text-lg font-black ${
-                        performanceData.p2.bestPosition !== "-" &&
-                        (performanceData.p1.bestPosition === "-" ||
-                          Number(performanceData.p2.bestPosition) <= Number(performanceData.p1.bestPosition))
-                          ? "bg-red-600 text-white shadow-lg shadow-red-500/10"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {performanceData.p2.bestPosition !== "-"
-                        ? `P${performanceData.p2.bestPosition}`
-                        : "-"}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-wider">
-                      {performanceData.p2.bestPosition !== "-" &&
-                      (performanceData.p1.bestPosition === "-" ||
-                        Number(performanceData.p2.bestPosition) < Number(performanceData.p1.bestPosition))
-                        ? "Melhor"
-                        : ""}
-                    </p>
+                <div className="border-t border-slate-200 pt-6">
+                  <h4 className="text-center text-xs font-extrabold uppercase tracking-wider text-slate-950">
+                    Melhor posição
+                  </h4>
+                  <p className="mb-3 mt-1 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Menor posição alcançada
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[performanceData.p1, performanceData.p2].map((driver, index) => {
+                      const other = index === 0 ? performanceData.p2! : performanceData.p1;
+                      const isBest = driver.bestPosition !== "-" &&
+                        (other.bestPosition === "-" || Number(driver.bestPosition) <= Number(other.bestPosition));
+
+                      return (
+                        <div key={driver.name} className="flex min-w-0 flex-col items-center rounded-md bg-slate-50 px-3 py-3 text-center">
+                          <p className="mb-2 min-h-8 w-full break-words text-xs font-semibold leading-4 text-slate-700">{driver.name}</p>
+                          <span
+                            className={`inline-flex h-12 w-12 items-center justify-center rounded-md text-lg font-black ${
+                              isBest ? "bg-red-600 text-white shadow-lg shadow-red-500/10" : "bg-slate-200 text-slate-600"
+                            }`}
+                          >
+                            {driver.bestPosition === "-" ? "-" : `P${driver.bestPosition}`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* 3. Voltas Rápidas */}
                 <div className="border-t border-slate-200 pt-6">
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {performanceData.p1.name} ({performanceData.p1.fastLaps} VR)
-                    </span>
-                    <span className="text-xs font-extrabold text-slate-950 uppercase tracking-wider">
-                      Voltas Rápidas
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {performanceData.p2.name} ({performanceData.p2.fastLaps} VR)
-                    </span>
+                  <h4 className="mb-3 text-center text-xs font-extrabold uppercase tracking-wider text-slate-950">
+                    Voltas rápidas
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
+                        <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: performanceData.p1.teamColor || "#ef4444" }} aria-hidden="true" />
+                        <span className="break-words leading-4">{performanceData.p1.name}</span>
+                      </span>
+                      <strong className="shrink-0 text-sm text-slate-950">{performanceData.p1.fastLaps} VR</strong>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
+                      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
+                        <Circle className="h-2.5 w-2.5 shrink-0 fill-current" style={{ color: performanceData.p2.teamColor || "#3b82f6" }} aria-hidden="true" />
+                        <span className="break-words leading-4">{performanceData.p2.name}</span>
+                      </span>
+                      <strong className="shrink-0 text-sm text-slate-950">{performanceData.p2.fastLaps} VR</strong>
+                    </div>
                   </div>
-                  {/* Barra comparativa de Voltas Rápidas */}
-                  <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden flex">
+                  <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-slate-50" aria-label="Proporção de voltas rápidas">
                     {performanceData.p1.fastLaps === 0 && performanceData.p2.fastLaps === 0 ? (
                       <div className="w-full bg-slate-200" />
                     ) : (
@@ -831,22 +912,14 @@ export default function PerformancePage() {
                         <div
                           className="h-full transition-all duration-500"
                           style={{
-                            width: `${
-                              (performanceData.p1.fastLaps /
-                                (performanceData.p1.fastLaps + performanceData.p2.fastLaps)) *
-                              100
-                            }%`,
+                            width: `${(performanceData.p1.fastLaps / (performanceData.p1.fastLaps + performanceData.p2.fastLaps)) * 100}%`,
                             backgroundColor: performanceData.p1.teamColor || "#ef4444",
                           }}
                         />
                         <div
                           className="h-full transition-all duration-500"
                           style={{
-                            width: `${
-                              (performanceData.p2.fastLaps /
-                                (performanceData.p1.fastLaps + performanceData.p2.fastLaps)) *
-                              100
-                            }%`,
+                            width: `${(performanceData.p2.fastLaps / (performanceData.p1.fastLaps + performanceData.p2.fastLaps)) * 100}%`,
                             backgroundColor: performanceData.p2.teamColor || "#3b82f6",
                           }}
                         />
@@ -856,6 +929,7 @@ export default function PerformancePage() {
                 </div>
               </div>
             </section>
+            )}
           </div>
         )}
       </main>
