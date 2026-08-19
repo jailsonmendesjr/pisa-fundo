@@ -1,10 +1,24 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import Script from "next/script";
 import { FlagTriangleRight } from "lucide-react";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+const umamiBeforeSend = `
+  window.umamiBeforeSend = function (_type, payload) {
+    try {
+      const pathname = new URL(payload.url, window.location.origin).pathname;
+      const isPublicPage = pathname === "/" || pathname.startsWith("/season/");
+
+      return isPublicPage ? payload : false;
+    } catch {
+      return false;
+    }
+  };
+`;
 
 export const metadata: Metadata = {
   title: "Pisa Fundo – Campeonato de Kart",
@@ -46,6 +60,18 @@ export default function RootLayout({
         <footer className="border-t border-slate-800 bg-slate-950 text-center py-6 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} Pisa Fundo. Todos os direitos reservados.</p>
         </footer>
+
+        <Script id="umami-before-send" strategy="beforeInteractive">
+          {umamiBeforeSend}
+        </Script>
+        <Script
+          id="umami-analytics"
+          src="https://cloud.umami.is/script.js"
+          data-website-id="ae160256-33b8-4431-a7e6-d35307bbb6da"
+          data-domains="pisa-fundo.vercel.app"
+          data-before-send="umamiBeforeSend"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
