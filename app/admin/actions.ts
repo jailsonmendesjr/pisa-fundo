@@ -311,6 +311,127 @@ export async function updateRound(formData: FormData) {
   );
 }
 
+function cupDestination(cupId?: number) {
+  return cupId ? `/admin/copa?cup=${cupId}` : "/admin/copa";
+}
+
+export async function createCup(formData: FormData) {
+  await completeMutation("/admin/copa", "Mini Copa criada em rascunho.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from("championship_cup").insert({
+      season_id: integerValue(formData, "season_id"),
+      name: requiredText(formData, "name", 100),
+    });
+    failIfError(error);
+  });
+}
+
+export async function updateCup(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Dados da Mini Copa atualizados.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase
+      .from("championship_cup")
+      .update({ name: requiredText(formData, "name", 100) })
+      .eq("id", cupId);
+    failIfError(error);
+  });
+}
+
+export async function addCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Etapa vinculada à Mini Copa.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from("championship_cup_round").insert({
+      cup_id: cupId,
+      round_id: integerValue(formData, "round_id"),
+      cup_order: integerValue(formData, "cup_order"),
+    });
+    failIfError(error);
+  });
+}
+
+export async function removeCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Etapa removida da Mini Copa.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase
+      .from("championship_cup_round")
+      .delete()
+      .eq("cup_id", cupId)
+      .eq("round_id", integerValue(formData, "round_id"));
+    failIfError(error);
+  });
+}
+
+export async function closeCupRoundRegistrations(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Adesões da etapa encerradas.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase
+      .from("championship_cup_round")
+      .update({ registration_closed_at: new Date().toISOString() })
+      .eq("cup_id", cupId)
+      .eq("round_id", integerValue(formData, "round_id"));
+    failIfError(error);
+  });
+}
+
+export async function enrollCupEntry(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Piloto incluído na Mini Copa.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from("championship_cup_entry").insert({
+      cup_id: cupId,
+      entry_id: integerValue(formData, "entry_id"),
+      first_round_id: integerValue(formData, "first_round_id"),
+    });
+    failIfError(error);
+  });
+}
+
+export async function removeCupEntry(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Piloto removido da Mini Copa.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase
+      .from("championship_cup_entry")
+      .delete()
+      .eq("cup_id", cupId)
+      .eq("entry_id", integerValue(formData, "entry_id"));
+    failIfError(error);
+  });
+}
+
+export async function publishCup(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(cupDestination(cupId), "Mini Copa publicada e ativada.", async () => {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase
+      .from("championship_cup")
+      .update({ published_at: new Date().toISOString(), is_enabled: true })
+      .eq("id", cupId);
+    failIfError(error);
+  });
+}
+
+export async function setCupEnabled(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  const enabled = formData.get("enabled") === "true";
+  await completeMutation(
+    cupDestination(cupId),
+    enabled ? "Mini Copa ativada." : "Mini Copa ocultada sem apagar seus dados.",
+    async () => {
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase
+        .from("championship_cup")
+        .update({ is_enabled: enabled })
+        .eq("id", cupId);
+      failIfError(error);
+    }
+  );
+}
+
 export async function saveRoundResults(formData: FormData) {
   const roundId = integerValue(formData, "round_id");
   await completeMutation(

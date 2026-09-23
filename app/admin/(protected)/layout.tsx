@@ -9,6 +9,7 @@ const navigation = [
   ["Pilotos", "/admin/pilotos"],
   ["Inscrições", "/admin/inscricoes"],
   ["Etapas", "/admin/etapas"],
+  ["Mini Copa", "/admin/copa"],
   ["Resultados", "/admin/resultados"],
   ["Configurações", "/admin/configuracoes"],
 ] as const;

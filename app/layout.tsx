@@ -11,7 +11,7 @@ const umamiBeforeSend = `
   window.umamiBeforeSend = function (_type, payload) {
     try {
       const pathname = new URL(payload.url, window.location.origin).pathname;
-      const isPublicPage = pathname === "/" || pathname.startsWith("/season/");
+      const isPublicPage = pathname === "/" || pathname.startsWith("/season/") || pathname.startsWith("/copa/");
 
       return isPublicPage ? payload : false;
     } catch {
@@ -61,7 +61,7 @@ export default function RootLayout({
           <p>© {new Date().getFullYear()} Pisa Fundo. Todos os direitos reservados.</p>
         </footer>
 
-        <Script id="umami-before-send" strategy="beforeInteractive">
+        <Script id="umami-before-send" strategy="afterInteractive">
           {umamiBeforeSend}
         </Script>
         <Script
