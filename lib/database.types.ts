@@ -35,6 +35,173 @@ export type Database = {
         }
         Relationships: []
       }
+      championship_cup_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          cup_id: number
+          details: Json
+          id: number
+          reason: string
+          round_id: number
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          cup_id: number
+          details?: Json
+          id?: number
+          reason: string
+          round_id: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          cup_id?: number
+          details?: Json
+          id?: number
+          reason?: string
+          round_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_cup_audit_cup_id_fkey"
+            columns: ["cup_id"]
+            isOneToOne: false
+            referencedRelation: "championship_cup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championship_cup_audit_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "championship_round"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_cup: {
+        Row: {
+          created_at: string
+          id: number
+          is_enabled: boolean
+          name: string
+          published_at: string | null
+          season_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_enabled?: boolean
+          name: string
+          published_at?: string | null
+          season_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_enabled?: boolean
+          name?: string
+          published_at?: string | null
+          season_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_cup_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "championship_season"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_cup_entry: {
+        Row: {
+          cup_id: number
+          enrolled_at: string
+          enrolled_by: string | null
+          entry_id: number
+          first_round_id: number
+        }
+        Insert: {
+          cup_id: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          entry_id: number
+          first_round_id: number
+        }
+        Update: {
+          cup_id?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          entry_id?: number
+          first_round_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_cup_entry_cup_id_first_round_id_fkey"
+            columns: ["cup_id", "first_round_id"]
+            isOneToOne: false
+            referencedRelation: "championship_cup_round"
+            referencedColumns: ["cup_id", "round_id"]
+          },
+          {
+            foreignKeyName: "championship_cup_entry_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "championship_driverteamseason"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_cup_round: {
+        Row: {
+          cup_id: number
+          cup_order: number
+          registration_closed_at: string | null
+          retroactive_at: string | null
+          retroactive_by: string | null
+          retroactive_reason: string | null
+          round_id: number
+        }
+        Insert: {
+          cup_id: number
+          cup_order: number
+          registration_closed_at?: string | null
+          retroactive_at?: string | null
+          retroactive_by?: string | null
+          retroactive_reason?: string | null
+          round_id: number
+        }
+        Update: {
+          cup_id?: number
+          cup_order?: number
+          registration_closed_at?: string | null
+          retroactive_at?: string | null
+          retroactive_by?: string | null
+          retroactive_reason?: string | null
+          round_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_cup_round_cup_id_fkey"
+            columns: ["cup_id"]
+            isOneToOne: false
+            referencedRelation: "championship_cup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championship_cup_round_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "championship_round"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       championship_driver: {
         Row: {
           id: number
@@ -248,8 +415,22 @@ export type Database = {
         Args: { p_season_id: number }
         Returns: undefined
       }
+      add_retroactive_cup_round: {
+        Args: {
+          p_cup_id: number
+          p_cup_order: number
+          p_entry_ids: number[]
+          p_reason: string
+          p_round_id: number
+        }
+        Returns: undefined
+      }
       replace_round_results: {
         Args: { p_results: Json; p_round_id: number }
+        Returns: undefined
+      }
+      undo_retroactive_cup_round: {
+        Args: { p_cup_id: number; p_reason: string; p_round_id: number }
         Returns: undefined
       }
     }

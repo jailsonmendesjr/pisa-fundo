@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:cup": "node --experimental-strip-types --test tests/cup-scoring.test.ts",
     "generate:legacy-import": "node scripts/generate-legacy-import.mjs"
   },
   "dependencies": {

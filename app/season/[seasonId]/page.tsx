@@ -81,10 +81,16 @@ export default async function SeasonDetailPage(props: PageProps) {
       : "drivers";
 
   // 2. Executa as chamadas ao Supabase usando o ID numérico correto
-  const [seasonResponse, standings, rounds] = await Promise.all([
+  const [seasonResponse, standings, rounds, cupsResponse] = await Promise.all([
     supabase.from("championship_season").select("name, year").eq("id", seasonId).single(),
     getSeasonStandingsWithChanges(supabase, seasonId),
     getRoundsWithWinners(supabase, seasonId),
+    supabase
+      .from("championship_cup")
+      .select("id, name")
+      .eq("season_id", seasonId)
+      .eq("is_enabled", true)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (seasonResponse.error || !seasonResponse.data) {
@@ -92,6 +98,8 @@ export default async function SeasonDetailPage(props: PageProps) {
   }
 
   const season = seasonResponse.data;
+  if (cupsResponse.error) throw cupsResponse.error;
+  const activeCups = cupsResponse.data ?? [];
 
   return (
     <div className="min-h-screen p-4 text-slate-950 md:p-8">
@@ -116,6 +124,34 @@ export default async function SeasonDetailPage(props: PageProps) {
             </Link>
           </div>
         </div>
+
+        {activeCups.length > 0 ? (
+          <div className="mb-6 grid gap-3">
+            {activeCups.map((cup) => (
+              <Link
+                key={cup.id}
+                href={`/copa/${cup.id}`}
+                className="group flex flex-col gap-4 rounded-lg border border-red-200 bg-gradient-to-r from-red-50 to-white p-4 shadow-sm transition hover:border-red-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-red-600 p-2.5 text-white shadow-sm">
+                    <Trophy className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-red-600">
+                      Competição paralela
+                    </p>
+                    <p className="mt-0.5 font-black text-slate-950">{cup.name}</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center text-sm font-bold text-red-600 transition-transform group-hover:translate-x-1">
+                  Ver Mini Copa
+                  <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
 
         {/* Abas de Navegação (Server-Side Tabs) */}
         <div className="flex overflow-x-auto border-b border-slate-200 mb-6">
