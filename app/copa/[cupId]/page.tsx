@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  Circle,
   Clock3,
   FlagTriangleRight,
   MapPin,
@@ -126,7 +125,6 @@ export default async function CupPage({ params }: PageProps) {
                   Pos
                 </th>
                 <th scope="col" className="px-2 py-4 sm:px-4">Piloto</th>
-                <th scope="col" className="hidden px-4 py-4 md:table-cell">Equipe</th>
                 <th scope="col" className="w-11 px-0 py-2 text-center sm:px-2 md:w-24 md:px-4 md:py-4">
                   <StandingsMetricHeader label="Vitórias" metric="wins" />
                 </th>
@@ -142,7 +140,7 @@ export default async function CupPage({ params }: PageProps) {
             <tbody className="divide-y divide-slate-200 text-sm">
               {classifiedDrivers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
                     Nenhum resultado válido para a Copa foi publicado ainda.
                   </td>
                 </tr>
@@ -158,36 +156,14 @@ export default async function CupPage({ params }: PageProps) {
                       ) : null}
                     </td>
                     <td className="max-w-0 px-2 py-4 sm:px-4">
-                      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                        <Circle
-                          className="h-3 w-3 shrink-0 fill-current"
-                          style={{ color: driver.teamColor }}
-                          aria-hidden="true"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-950">
-                            {driver.driverName}
-                          </p>
-                          <p className="mt-0.5 truncate text-xs text-slate-500 md:hidden">
-                            {driver.teamName} · #{driver.carNumber ?? "--"}
-                          </p>
-                          <p className="mt-0.5 hidden text-xs text-slate-500 md:block">
-                            Carro #{driver.carNumber ?? "--"} · {driver.resultsCounted} resultado{driver.resultsCounted === 1 ? "" : "s"}
-                          </p>
-                        </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-950">
+                          {driver.driverName}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          Carro #{driver.carNumber ?? "--"} · {driver.resultsCounted} resultado{driver.resultsCounted === 1 ? "" : "s"}
+                        </p>
                       </div>
-                    </td>
-                    <td className="hidden px-4 py-4 md:table-cell">
-                      <span
-                        className="inline-flex items-center gap-2 rounded border bg-slate-50 px-2 py-1 text-xs font-medium"
-                        style={{
-                          borderColor: `${driver.teamColor}40`,
-                          color: driver.teamColor,
-                        }}
-                      >
-                        <Circle className="h-2 w-2 fill-current" aria-hidden="true" />
-                        {driver.teamName}
-                      </span>
                     </td>
                     <td className="px-0 py-4 text-center font-medium text-slate-700 sm:px-2 md:px-4">
                       {driver.wins}
