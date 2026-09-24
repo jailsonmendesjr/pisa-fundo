@@ -320,7 +320,7 @@ export default async function CupPage({ params }: PageProps) {
             <li className="flex gap-2"><Trophy className="mt-1 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />Os pontos são exatamente os mesmos do resultado oficial.</li>
             <li className="flex gap-2"><Trophy className="mt-1 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />Posições e pontos não são redistribuídos quando um convidado ou não participante termina à frente.</li>
             <li className="flex gap-2"><Trophy className="mt-1 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />Adesões tardias contam somente a partir da etapa escolhida.</li>
-            <li className="flex gap-2"><Trophy className="mt-1 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />Desempate: pontos, vitórias, pódios e, após a final, o melhor resultado real na quarta etapa.</li>
+            <li className="flex gap-2"><Trophy className="mt-1 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />Desempate: pontos, vitórias, pódios e melhores resultados, começando pela etapa publicada mais recente.</li>
           </ul>
         </section>
       </div>

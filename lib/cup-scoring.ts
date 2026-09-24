@@ -54,19 +54,6 @@ function hasSamePrimaryCriteria(a: MutableStanding, b: MutableStanding) {
   );
 }
 
-function completedFinalRound(entry: MutableStanding) {
-  return entry.finalRoundStatus === "COMPLETED";
-}
-
-function hasSameFinalRoundCriterion(a: MutableStanding, b: MutableStanding) {
-  const aCompleted = completedFinalRound(a);
-  const bCompleted = completedFinalRound(b);
-
-  if (!aCompleted && !bCompleted) return true;
-  if (aCompleted !== bCompleted) return false;
-  return a.finalRoundPosition === b.finalRoundPosition;
-}
-
 /**
  * Calcula exclusivamente a classificação individual da Mini Copa.
  * Os pontos já vêm dos resultados oficiais e nunca são recalculados aqui.
@@ -88,6 +75,7 @@ export function calculateCupStandings(
   const hasCompleteCalendar = orderedRounds.length === 4 && finalRoundId !== undefined;
   const publishedRoundIdSet = new Set<number>();
   const participantByEntryId = new Map<number, MutableStanding>();
+  const completedPositionByEntryId = new Map<number, Map<number, number>>();
 
   for (const participant of participants) {
     participantByEntryId.set(participant.entryId, {
@@ -99,6 +87,7 @@ export function calculateCupStandings(
       finalRoundPosition: null,
       finalRoundStatus: null,
     });
+    completedPositionByEntryId.set(participant.entryId, new Map());
   }
 
   for (const result of results) {
@@ -118,6 +107,9 @@ export function calculateCupStandings(
     if (result.status === "COMPLETED") {
       if (result.position === 1) standing.wins += 1;
       if (result.position <= 3) standing.podiums += 1;
+      completedPositionByEntryId
+        .get(result.entryId)!
+        .set(result.roundId, result.position);
     }
 
     if (finalRoundId !== undefined && result.roundId === finalRoundId) {
@@ -128,23 +120,50 @@ export function calculateCupStandings(
 
   const finalRoundPublished =
     hasCompleteCalendar && publishedRoundIdSet.has(finalRoundId);
+  const publishedRoundsNewestFirst = orderedRounds
+    .filter((round) => publishedRoundIdSet.has(round.roundId))
+    .reverse();
+
+  const compareByRecentResults = (
+    a: MutableStanding,
+    b: MutableStanding
+  ) => {
+    const aPositions = completedPositionByEntryId.get(a.entryId)!;
+    const bPositions = completedPositionByEntryId.get(b.entryId)!;
+    const aFirstEligibleOrder = roundOrderById.get(a.firstRoundId);
+    const bFirstEligibleOrder = roundOrderById.get(b.firstRoundId);
+
+    for (const round of publishedRoundsNewestFirst) {
+      if (
+        aFirstEligibleOrder === undefined ||
+        bFirstEligibleOrder === undefined ||
+        round.cupOrder < aFirstEligibleOrder ||
+        round.cupOrder < bFirstEligibleOrder
+      ) {
+        continue;
+      }
+
+      const aPosition = aPositions.get(round.roundId);
+      const bPosition = bPositions.get(round.roundId);
+      const aCompleted = aPosition !== undefined;
+      const bCompleted = bPosition !== undefined;
+
+      if (aCompleted !== bCompleted) return aCompleted ? -1 : 1;
+      if (aCompleted && bCompleted && aPosition !== bPosition) {
+        return aPosition - bPosition;
+      }
+    }
+
+    return 0;
+  };
+
   const sorted = Array.from(participantByEntryId.values()).sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
     if (b.wins !== a.wins) return b.wins - a.wins;
     if (b.podiums !== a.podiums) return b.podiums - a.podiums;
 
-    if (finalRoundPublished) {
-      const aCompleted = completedFinalRound(a);
-      const bCompleted = completedFinalRound(b);
-      if (aCompleted !== bCompleted) return aCompleted ? -1 : 1;
-      if (
-        aCompleted &&
-        bCompleted &&
-        a.finalRoundPosition !== b.finalRoundPosition
-      ) {
-        return a.finalRoundPosition! - b.finalRoundPosition!;
-      }
-    }
+    const recentResultComparison = compareByRecentResults(a, b);
+    if (recentResultComparison !== 0) return recentResultComparison;
 
     // Deterministic display only. Shared rank below prevents this fallback from
     // becoming a sporting tie-breaker.
@@ -153,7 +172,7 @@ export function calculateCupStandings(
 
   const sameRank = (a: MutableStanding, b: MutableStanding) =>
     hasSamePrimaryCriteria(a, b) &&
-    (!finalRoundPublished || hasSameFinalRoundCriterion(a, b));
+    compareByRecentResults(a, b) === 0;
 
   const ranked: CupStandingEntry[] = [];
   for (const [index, entry] of sorted.entries()) {
