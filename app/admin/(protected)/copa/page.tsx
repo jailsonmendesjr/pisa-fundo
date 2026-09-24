@@ -1,3 +1,4 @@
+import { RetroactiveCupRoundForm } from "@/components/admin/retroactive-cup-round-form";
 import { SubmitButton } from "@/components/admin/submit-button";
 import {
   Notice,
@@ -16,6 +17,7 @@ import {
   removeCupEntry,
   removeCupRound,
   setCupEnabled,
+  undoRetroactiveCupRound,
   updateCup,
 } from "../../actions";
 
@@ -83,7 +85,9 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
             .order("order"),
           supabase
             .from("championship_cup_round")
-            .select("cup_id, round_id, cup_order, registration_closed_at")
+            .select(
+              "cup_id, round_id, cup_order, registration_closed_at, retroactive_at, retroactive_by, retroactive_reason"
+            )
             .eq("cup_id", selectedCup.id)
             .order("cup_order"),
           supabase
@@ -118,7 +122,7 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
   const resultsResponse = seasonRoundIds.length
     ? await supabase
         .from("championship_roundresult")
-        .select("round_id")
+        .select("round_id, entry_id, position, points, status")
         .in("round_id", seasonRoundIds)
     : { data: [], error: null };
   if (resultsResponse.error) throw resultsResponse.error;
@@ -142,6 +146,9 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
   const availableRounds = rounds.filter(
     (round) => !linkedRoundIdSet.has(round.id) && !resultRoundIds.has(round.id)
   );
+  const retroactiveRounds = rounds.filter(
+    (round) => !linkedRoundIdSet.has(round.id) && resultRoundIds.has(round.id)
+  );
   const usedCupOrders = new Set(cupRounds.map((round) => round.cup_order));
   const availableCupOrders = [1, 2, 3, 4].filter(
     (order) => !usedCupOrders.has(order)
@@ -154,6 +161,20 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
     (entry) => !entry.is_guest && !cupEntryIds.has(entry.id)
   );
   const guestCount = entries.filter((entry) => entry.is_guest).length;
+  const retroactiveEntries = entries
+    .filter((entry) => !entry.is_guest)
+    .map((entry) => ({
+      id: entry.id,
+      driverName: driverNames.get(entry.driver_id) ?? `Piloto ${entry.driver_id}`,
+      teamName: teamNames.get(entry.team_id) ?? "Equipe",
+    }));
+  const retroactiveResults = (resultsResponse.data ?? []).map((result) => ({
+    entryId: result.entry_id,
+    roundId: result.round_id,
+    points: result.points,
+    position: result.position,
+    status: result.status,
+  }));
 
   return (
     <div className="space-y-8">
@@ -327,6 +348,21 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
               </form>
             ) : null}
 
+            {!selectedCup.published_at &&
+            retroactiveRounds.length > 0 &&
+            retroactiveEntries.length > 0 &&
+            availableCupOrders.length > 0 ? (
+              <div className="mb-6">
+                <RetroactiveCupRoundForm
+                  cupId={selectedCup.id}
+                  rounds={retroactiveRounds}
+                  availableOrders={availableCupOrders}
+                  entries={retroactiveEntries}
+                  results={retroactiveResults}
+                />
+              </div>
+            ) : null}
+
             <div className="space-y-3">
               {cupRounds.map((cupRound) => {
                 const round = roundById.get(cupRound.round_id);
@@ -345,12 +381,45 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
                         {closed
                           ? statusBadge(hasResults ? "Resultado publicado" : "Adesões encerradas", "slate")
                           : statusBadge("Adesões abertas", "green")}
+                        {cupRound.retroactive_at
+                          ? statusBadge("Inclusão retroativa", "amber")
+                          : null}
                       </div>
                       <p className="mt-1 text-sm text-slate-500">
                         {round ? `${formatDate(round.date)} · ${round.location}` : null}
                       </p>
+                      {cupRound.retroactive_reason ? (
+                        <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+                          Justificativa: {cupRound.retroactive_reason}
+                        </p>
+                      ) : null}
                     </div>
-                    {!closed ? (
+                    {cupRound.retroactive_at && !selectedCup.published_at ? (
+                      <form
+                        action={undoRetroactiveCupRound}
+                        className="w-full space-y-2 sm:w-72"
+                      >
+                        <input type="hidden" name="cup_id" value={selectedCup.id} />
+                        <input type="hidden" name="round_id" value={cupRound.round_id} />
+                        <label className={labelClassName}>
+                          Motivo para desfazer
+                          <input
+                            name="reason"
+                            required
+                            minLength={10}
+                            maxLength={300}
+                            className={inputClassName}
+                            placeholder="Informe o motivo"
+                          />
+                        </label>
+                        <SubmitButton
+                          className="bg-slate-200 hover:bg-white"
+                          pendingLabel="Desfazendo..."
+                        >
+                          Desfazer inclusão
+                        </SubmitButton>
+                      </form>
+                    ) : !closed ? (
                       <div className="flex flex-wrap gap-2">
                         <form action={closeCupRoundRegistrations}>
                           <input type="hidden" name="cup_id" value={selectedCup.id} />

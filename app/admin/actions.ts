@@ -351,6 +351,57 @@ export async function addCupRound(formData: FormData) {
   });
 }
 
+export async function addRetroactiveCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(
+    cupDestination(cupId),
+    "Etapa realizada incluída com os pilotos confirmados.",
+    async () => {
+      if (formData.get("confirmed") !== "true") {
+        throw new Error(
+          "Confirme que a lista de pilotos foi definida antes da divulgação do resultado."
+        );
+      }
+
+      const entryIds = formData
+        .getAll("entry_id")
+        .map((value) => Number.parseInt(String(value), 10))
+        .filter(Number.isSafeInteger);
+
+      if (entryIds.length === 0) {
+        throw new Error("Selecione ao menos um piloto participante.");
+      }
+
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase.rpc("add_retroactive_cup_round", {
+        p_cup_id: cupId,
+        p_round_id: integerValue(formData, "round_id"),
+        p_cup_order: integerValue(formData, "cup_order"),
+        p_entry_ids: entryIds,
+        p_reason: requiredText(formData, "reason", 300),
+      });
+      failIfError(error);
+    }
+  );
+}
+
+export async function undoRetroactiveCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(
+    cupDestination(cupId),
+    "Inclusão retroativa desfeita sem alterar a etapa oficial.",
+    async () => {
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase.rpc("undo_retroactive_cup_round", {
+        p_cup_id: cupId,
+        p_round_id: integerValue(formData, "round_id"),
+        p_reason: requiredText(formData, "reason", 300),
+      });
+      failIfError(error);
+    }
+  );
+}
+
 export async function removeCupRound(formData: FormData) {
   const cupId = integerValue(formData, "cup_id");
   await completeMutation(cupDestination(cupId), "Etapa removida da Mini Copa.", async () => {
