@@ -6,7 +6,7 @@ Status: fases 1 a 5 implementadas e validadas apenas localmente: migração adit
 
 - A migração foi reaplicada do zero no Supabase local e os verificadores de segurança e desempenho não apontaram alertas.
 - Os testes de banco confirmaram restrições de temporada, convidados, adesão tardia, etapas encerradas, publicação, ocultação e permissões administrativas.
-- Os testes do motor confirmaram pontuação oficial sem redistribuição e a sequência completa de desempate, inclusive o resultado real da quarta etapa.
+- Os testes do motor confirmaram pontuação oficial sem redistribuição e a sequência completa de desempate pelos resultados reais mais recentes.
 - A navegação pública confirmou que convidados e regulares não participantes continuam no resultado oficial, mas não entram na classificação da Copa.
 - O ensaio de rollback ocultou o atalho e bloqueou a página pública da Copa sem alterar a classificação oficial; a Copa foi reativada em seguida com seus vínculos e dados preservados.
 - Tipagem, lint e build de produção concluíram sem erros.
@@ -59,7 +59,7 @@ Restrições de unicidade, chaves estrangeiras e validações no servidor devem 
 
 ### Desempate da Copa
 
-Ordenar por pontos, vitórias e pódios obtidos somente nas etapas elegíveis da Copa. Persistindo o empate, vence quem tiver o melhor resultado na última etapa válida da Copa, considerando a posição real da corrida, sem retirar convidados ou não participantes da frente. Uma chegada concluída supera DNF, DNS ou ausência. Se nenhum dos pilotos empatados concluir essa etapa, o empate permanece; a ordem alfabética não decide o título. Antes da publicação do resultado da etapa final, esse último critério não deve ser aplicado e o empate é provisório.
+Ordenar por pontos, vitórias e pódios obtidos somente nas etapas elegíveis da Copa. Persistindo o empate, comparar a posição real dos pilotos na etapa publicada mais recente, sem retirar convidados ou não participantes da frente. Uma chegada concluída supera DNF, DNS ou ausência. Se nenhum dos pilotos empatados concluir essa etapa, comparar a etapa publicada imediatamente anterior e continuar retrocedendo enquanto necessário. Se nenhuma etapa oferecer um resultado concluído que diferencie os pilotos, o empate permanece; a ordem alfabética não decide a classificação.
 
 O motor implementado mantém posições compartilhadas nos empates reais, usando ordem alfabética somente para apresentação estável. Os pontos são lidos diretamente do resultado oficial; o cálculo da Copa não reaplica a tabela nem transfere pontos, posições ou bônus.
 
@@ -89,7 +89,7 @@ Rollback funcional significa retornar à experiência atual do campeonato oficia
 8. A Copa aceita até quatro etapas da temporada correta; etapas de outra temporada e vínculos duplicados são rejeitados.
 9. Não é possível converter convidado em regular após o início da Copa nem reatribuir a outro piloto uma inscrição já vinculada, inclusive por envio direto da ação administrativa.
 10. Com a Copa desativada ou o código anterior reimplantado, todas as páginas e operações oficiais continuam funcionando e exibindo os mesmos resultados e rankings.
-11. Empates aplicam pontos, vitórias, pódios e, somente após a última etapa válida publicada, o melhor resultado real nessa etapa. Se nenhum empatado a concluir, o empate permanece, sem desempate alfabético.
+11. Empates aplicam pontos, vitórias, pódios e os resultados reais, começando pela etapa publicada mais recente e retrocedendo enquanto necessário. Uma chegada concluída supera DNF, DNS ou ausência; se nenhuma etapa diferenciar os pilotos, a posição permanece compartilhada, sem desempate alfabético.
 
 ## Sequência sugerida de entrega
 

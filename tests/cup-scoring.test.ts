@@ -69,10 +69,29 @@ test("late enrollment ignores every result before the selected first round", () 
   assert.equal(ana.totalPoints, 18);
   assert.equal(bruno.totalPoints, 18);
   assert.equal(bruno.resultsCounted, 1);
-  assert.equal(ana.position, 1);
   assert.equal(bruno.position, 1);
-  assert.equal(ana.tieIsProvisional, true);
-  assert.equal(bruno.tieIsProvisional, true);
+  assert.equal(ana.position, 2);
+  assert.equal(ana.isTied, false);
+  assert.equal(bruno.isTied, false);
+});
+
+test("does not use rounds from before a participant became eligible", () => {
+  const participants = [participant(1, "Ana"), participant(2, "Bruno", 103)];
+  const results: CupScoringResult[] = [
+    { roundId: 101, entryId: 1, points: 0, position: 4, status: "COMPLETED" },
+    { roundId: 103, entryId: 1, points: 0, position: 8, status: "DNF" },
+    { roundId: 103, entryId: 2, points: 0, position: 9, status: "DNS" },
+  ];
+
+  const calculation = calculateCupStandings(rounds, participants, results);
+
+  assert.deepEqual(
+    calculation.standings.map(({ entryId, position, isTied }) => ({ entryId, position, isTied })),
+    [
+      { entryId: 1, position: 1, isTied: true },
+      { entryId: 2, position: 1, isTied: true },
+    ]
+  );
 });
 
 test("DNF and DNS never add wins or podiums even when their stored position is high", () => {
@@ -122,35 +141,28 @@ test("sorts equal points by wins and then by podiums", () => {
   );
 });
 
-test("final round real position breaks a tie only after the final result exists", () => {
+test("most recent published round position breaks a tie immediately", () => {
   const participants = [participant(1, "Ana"), participant(2, "Bruno")];
-  const beforeFinal: CupScoringResult[] = [
+  const results: CupScoringResult[] = [
     { roundId: 101, entryId: 1, points: 10, position: 4, status: "COMPLETED" },
     { roundId: 101, entryId: 2, points: 10, position: 5, status: "COMPLETED" },
+    { roundId: 102, entryId: 1, points: 0, position: 8, status: "COMPLETED" },
+    { roundId: 102, entryId: 2, points: 0, position: 7, status: "COMPLETED" },
   ];
 
-  const provisional = calculateCupStandings(rounds, participants, beforeFinal);
-  assert.equal(provisional.finalRoundPublished, false);
-  assert.deepEqual(provisional.standings.map((entry) => entry.position), [1, 1]);
-  assert.ok(provisional.standings.every((entry) => entry.tieIsProvisional));
+  const calculation = calculateCupStandings(rounds, participants, results);
 
-  const final = calculateCupStandings(rounds, participants, [
-    ...beforeFinal,
-    { roundId: 104, entryId: 1, points: 0, position: 5, status: "COMPLETED" },
-    { roundId: 104, entryId: 2, points: 0, position: 7, status: "COMPLETED" },
-  ]);
-
-  assert.equal(final.finalRoundPublished, true);
+  assert.equal(calculation.finalRoundPublished, false);
   assert.deepEqual(
-    final.standings.map(({ entryId, position, isTied }) => ({ entryId, position, isTied })),
+    calculation.standings.map(({ entryId, position, isTied }) => ({ entryId, position, isTied })),
     [
-      { entryId: 1, position: 1, isTied: false },
-      { entryId: 2, position: 2, isTied: false },
+      { entryId: 2, position: 1, isTied: false },
+      { entryId: 1, position: 2, isTied: false },
     ]
   );
 });
 
-test("does not treat the latest available round as final before all four are linked", () => {
+test("uses the latest available round even before all four are linked", () => {
   const participants = [participant(1, "Ana"), participant(2, "Bruno")];
   const partialCalendar = rounds.slice(0, 2);
   const results: CupScoringResult[] = [
@@ -165,11 +177,11 @@ test("does not treat the latest available round as final before all four are lin
   );
 
   assert.equal(calculation.finalRoundPublished, false);
-  assert.deepEqual(calculation.standings.map((entry) => entry.position), [1, 1]);
-  assert.ok(calculation.standings.every((entry) => entry.tieIsProvisional));
+  assert.deepEqual(calculation.standings.map((entry) => entry.position), [1, 2]);
+  assert.ok(calculation.standings.every((entry) => !entry.isTied));
 });
 
-test("completed final result beats DNF, DNS or absence", () => {
+test("completed latest result beats DNF, DNS or absence", () => {
   const participants = [
     participant(1, "Ana"),
     participant(2, "Bruno"),
@@ -192,7 +204,27 @@ test("completed final result beats DNF, DNS or absence", () => {
   );
 });
 
-test("tie remains shared when no tied driver completes the final round", () => {
+test("falls back to the previous round when neither driver completes the latest", () => {
+  const participants = [participant(1, "Ana"), participant(2, "Bruno")];
+  const results: CupScoringResult[] = [
+    { roundId: 103, entryId: 1, points: 0, position: 6, status: "COMPLETED" },
+    { roundId: 103, entryId: 2, points: 0, position: 8, status: "COMPLETED" },
+    { roundId: 104, entryId: 1, points: 0, position: 1, status: "DNF" },
+    { roundId: 104, entryId: 2, points: 0, position: 2, status: "DNS" },
+  ];
+
+  const calculation = calculateCupStandings(rounds, participants, results);
+
+  assert.deepEqual(
+    calculation.standings.map(({ entryId, position, isTied }) => ({ entryId, position, isTied })),
+    [
+      { entryId: 1, position: 1, isTied: false },
+      { entryId: 2, position: 2, isTied: false },
+    ]
+  );
+});
+
+test("tie remains shared when no published round provides a completed result", () => {
   const participants = [participant(1, "Ana"), participant(2, "Bruno")];
   const results: CupScoringResult[] = [
     { roundId: 104, entryId: 1, points: 0, position: 1, status: "DNF" },
