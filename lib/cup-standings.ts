@@ -8,6 +8,10 @@ import {
   type CupStandingEntry,
 } from "./cup-scoring";
 import type { ResultStatus } from "./scoring";
+import {
+  buildCupParticipation,
+  type CupParticipationMarker,
+} from "./cup-participation";
 
 type AppSupabaseClient = SupabaseClient<Database>;
 
@@ -29,7 +33,9 @@ export interface CupStandingsData {
     isEnabled: boolean;
   };
   rounds: CupRoundSummary[];
-  standings: CupStandingEntry[];
+  standings: Array<
+    CupStandingEntry & { roundParticipation: CupParticipationMarker[] }
+  >;
   finalRoundPublished: boolean;
   publishedRoundIds: number[];
 }
@@ -132,6 +138,10 @@ export async function getCupStandings(
   const roundRowsById = new Map(
     (roundsResponse.data ?? []).map((row) => [row.round_id, row])
   );
+  const participationRounds = cupRounds.map((round) => ({
+    ...round,
+    roundName: roundRowsById.get(round.roundId)!.championship_round.name,
+  }));
 
   return {
     cup: {
@@ -152,7 +162,15 @@ export async function getCupStandings(
         hasResults: publishedRoundIdSet.has(cupRound.roundId),
       };
     }),
-    standings: calculation.standings,
+    standings: calculation.standings.map((standing) => ({
+      ...standing,
+      roundParticipation: buildCupParticipation(
+        participationRounds,
+        standing,
+        mappedResults,
+        calculation.publishedRoundIds
+      ),
+    })),
     finalRoundPublished: calculation.finalRoundPublished,
     publishedRoundIds: calculation.publishedRoundIds,
   };

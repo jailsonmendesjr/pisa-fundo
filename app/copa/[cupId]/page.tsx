@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock3,
   FlagTriangleRight,
@@ -13,6 +14,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { BackLink } from "@/components/back-link";
+import { CupParticipationDots } from "@/components/cup-participation-dots";
 import { StandingsMetricHeader } from "@/components/standings-metric-header";
 import { getCupStandings } from "@/lib/cup-standings";
 import { supabase } from "@/lib/supabase";
@@ -160,9 +162,9 @@ export default async function CupPage({ params }: PageProps) {
                         <p className="truncate font-semibold text-slate-950">
                           {driver.driverName}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">
-                          Carro #{driver.carNumber ?? "--"} · {driver.resultsCounted} resultado{driver.resultsCounted === 1 ? "" : "s"}
-                        </p>
+                        <CupParticipationDots
+                          markers={driver.roundParticipation}
+                        />
                       </div>
                     </td>
                     <td className="px-0 py-4 text-center font-medium text-slate-700 sm:px-2 md:px-4">
@@ -255,42 +257,50 @@ export default async function CupPage({ params }: PageProps) {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="inscritos-copa">
-          <div className="mb-5 flex items-center gap-3">
+        <details className="group rounded-lg border border-slate-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500 [&::-webkit-details-marker]:hidden">
             <span className="rounded-lg bg-slate-100 p-2 text-slate-700">
               <UsersRound className="h-5 w-5" aria-hidden="true" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                 Participantes
               </p>
-              <h2 id="inscritos-copa" className="text-xl font-black text-slate-950">
+              <h2 className="text-xl font-black text-slate-950">
                 Pilotos inscritos
               </h2>
             </div>
-          </div>
-          <ul className="divide-y divide-slate-100">
-            {data.standings.map((driver) => {
-              const firstRound = roundById.get(driver.firstRoundId);
-              return (
-                <li key={driver.entryId} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-950">{driver.driverName}</p>
-                    <p className="truncate text-xs text-slate-500">{driver.teamName}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
-                    Desde a {firstRound?.cupOrder ?? "?"}ª
-                  </span>
+            <span className="text-sm font-bold text-slate-500">
+              {data.standings.length}
+            </span>
+            <ChevronDown
+              className="h-5 w-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            />
+          </summary>
+          <div className="border-t border-slate-100 px-5 pb-5">
+            <ul className="divide-y divide-slate-100">
+              {data.standings.map((driver) => {
+                const firstRound = roundById.get(driver.firstRoundId);
+                return (
+                  <li key={driver.entryId} className="flex items-center justify-between gap-4 py-3 last:pb-0">
+                    <p className="min-w-0 truncate font-semibold text-slate-950">
+                      {driver.driverName}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                      Desde a {firstRound?.cupOrder ?? "?"}ª
+                    </span>
+                  </li>
+                );
+              })}
+              {data.standings.length === 0 ? (
+                <li className="py-6 text-center text-sm text-slate-500">
+                  Nenhum piloto inscrito até o momento.
                 </li>
-              );
-            })}
-            {data.standings.length === 0 ? (
-              <li className="py-6 text-center text-sm text-slate-500">
-                Nenhum piloto inscrito até o momento.
-              </li>
-            ) : null}
-          </ul>
-        </section>
+              ) : null}
+            </ul>
+          </div>
+        </details>
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="regras-copa">
           <div className="mb-5 flex items-center gap-3">
