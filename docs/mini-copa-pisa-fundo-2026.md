@@ -27,6 +27,7 @@ Fora do escopo da primeira versão: ranking de equipes na Copa, cadastro de pilo
 6. Novos pilotos continuam vinculados a equipes no campeonato oficial. A Copa não exibe nem agrega equipes.
 7. A adesão tardia é permitida antes de uma etapa da Copa. Apenas resultados a partir da primeira etapa elegível são contabilizados. A única exceção é a inclusão retroativa controlada de uma etapa já realizada, enquanto a Copa ainda estiver em rascunho, para registrar uma lista de participantes que já havia sido definida antes da divulgação do resultado.
 8. O administrador encerra as adesões daquela etapa antes da largada. Não é permitido optar por aderir depois de conhecido o resultado.
+9. Se uma Copa já publicada tiver menos de quatro etapas e uma etapa oficial prevista tiver sido realizada antes do vínculo, o administrador poderá anexá-la pelo fluxo excepcional. A operação preserva integralmente a lista e a primeira etapa elegível dos pilotos já inscritos; nenhum novo participante entra retroativamente.
 9. Após o início da Copa, convidados não são transformados em pilotos regulares para ingressar nela. A identidade e a condição de convidado de uma inscrição vinculada à Copa não podem ser trocadas de forma a reatribuir resultados anteriores.
 
 ## Modelo de dados proposto
@@ -47,6 +48,7 @@ Restrições de unicidade, chaves estrangeiras e validações no servidor devem 
 4. Antes da largada de cada etapa, revisar a lista e acionar “Encerrar adesões”. Depois disso, não permitir adesões com início nessa etapa; uma nova adesão poderá começar na próxima etapa ainda aberta. Se a configuração da Copa ocorrer depois de uma etapa já realizada, usar o fluxo excepcional “Incluir etapa já realizada”, selecionar a lista previamente combinada, revisar os pontos oficiais, confirmar a declaração e registrar a justificativa. A etapa entra com adesões encerradas.
 5. Publicar o resultado apenas pelo fluxo oficial já existente. A classificação da Copa é derivada automaticamente dos resultados publicados das etapas vinculadas.
 6. Correções excepcionais de adesão ou de vínculo de etapa após seu encerramento exigem fluxo administrativo separado, com prévia do impacto, declaração explícita e registro auditável da justificativa; não serão alterações silenciosas por checkbox. A inclusão retroativa pode ser desfeita enquanto a Copa permanecer em rascunho, sem excluir ou alterar a etapa e os resultados oficiais.
+7. Em uma Copa publicada, uma etapa oficial já realizada pode ser anexada apenas como a próxima etapa da Copa e se for posterior às etapas já vinculadas. A classificação é recalculada com os participantes existentes. A última inclusão feita por esse fluxo pode ser desfeita com nova confirmação, justificativa e auditoria, sem alterar resultados oficiais.
 
 ## Cálculo e apresentação
 
@@ -90,6 +92,7 @@ Rollback funcional significa retornar à experiência atual do campeonato oficia
 9. Não é possível converter convidado em regular após o início da Copa nem reatribuir a outro piloto uma inscrição já vinculada, inclusive por envio direto da ação administrativa.
 10. Com a Copa desativada ou o código anterior reimplantado, todas as páginas e operações oficiais continuam funcionando e exibindo os mesmos resultados e rankings.
 11. Empates aplicam pontos, vitórias, pódios e os resultados reais, começando pela etapa publicada mais recente e retrocedendo enquanto necessário. Uma chegada concluída supera DNF, DNS ou ausência; se nenhuma etapa diferenciar os pilotos, a posição permanece compartilhada, sem desempate alfabético.
+12. Uma Copa publicada com menos de quatro etapas aceita anexar uma etapa oficial já realizada como a próxima ordem, sem alterar adesões. Inclusão e rollback ficam auditados e nunca modificam resultados oficiais.
 
 ## Sequência sugerida de entrega
 

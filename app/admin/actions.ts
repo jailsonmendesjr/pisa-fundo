@@ -385,6 +385,53 @@ export async function addRetroactiveCupRound(formData: FormData) {
   );
 }
 
+export async function addPublishedCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(
+    cupDestination(cupId),
+    "Etapa realizada vinculada à Mini Copa publicada.",
+    async () => {
+      if (formData.get("confirmed") !== "true") {
+        throw new Error(
+          "Confirme que a etapa deve recalcular a classificação publicada."
+        );
+      }
+
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase.rpc("add_published_cup_round", {
+        p_cup_id: cupId,
+        p_round_id: integerValue(formData, "round_id"),
+        p_cup_order: integerValue(formData, "cup_order"),
+        p_reason: requiredText(formData, "reason", 300),
+      });
+      failIfError(error);
+    }
+  );
+}
+
+export async function undoPublishedCupRound(formData: FormData) {
+  const cupId = integerValue(formData, "cup_id");
+  await completeMutation(
+    cupDestination(cupId),
+    "Inclusão da etapa desfeita e classificação restaurada.",
+    async () => {
+      if (formData.get("confirmed") !== "true") {
+        throw new Error(
+          "Confirme que deseja remover a etapa e recalcular a classificação."
+        );
+      }
+
+      const { supabase } = await requireAdmin();
+      const { error } = await supabase.rpc("undo_published_cup_round", {
+        p_cup_id: cupId,
+        p_round_id: integerValue(formData, "round_id"),
+        p_reason: requiredText(formData, "reason", 300),
+      });
+      failIfError(error);
+    }
+  );
+}
+
 export async function undoRetroactiveCupRound(formData: FormData) {
   const cupId = integerValue(formData, "cup_id");
   await completeMutation(

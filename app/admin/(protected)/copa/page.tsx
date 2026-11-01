@@ -10,6 +10,7 @@ import {
 import { requireAdmin } from "@/lib/admin/auth";
 import {
   addCupRound,
+  addPublishedCupRound,
   closeCupRoundRegistrations,
   createCup,
   enrollCupEntry,
@@ -17,6 +18,7 @@ import {
   removeCupEntry,
   removeCupRound,
   setCupEnabled,
+  undoPublishedCupRound,
   undoRetroactiveCupRound,
   updateCup,
 } from "../../actions";
@@ -75,7 +77,13 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
     (season) => season.id === selectedCup?.season_id
   );
 
-  const [roundsResponse, cupRoundsResponse, entriesResponse, cupEntriesResponse] =
+  const [
+    roundsResponse,
+    cupRoundsResponse,
+    entriesResponse,
+    cupEntriesResponse,
+    cupAuditResponse,
+  ] =
     selectedCup
       ? await Promise.all([
           supabase
@@ -100,8 +108,14 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
             .select("cup_id, entry_id, first_round_id, enrolled_at")
             .eq("cup_id", selectedCup.id)
             .order("enrolled_at"),
+          supabase
+            .from("championship_cup_audit")
+            .select("round_id, action, created_at")
+            .eq("cup_id", selectedCup.id)
+            .order("created_at"),
         ])
       : [
+          { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
@@ -112,11 +126,13 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
   if (cupRoundsResponse.error) throw cupRoundsResponse.error;
   if (entriesResponse.error) throw entriesResponse.error;
   if (cupEntriesResponse.error) throw cupEntriesResponse.error;
+  if (cupAuditResponse.error) throw cupAuditResponse.error;
 
   const rounds = roundsResponse.data ?? [];
   const cupRounds = cupRoundsResponse.data ?? [];
   const entries = entriesResponse.data ?? [];
   const cupEntries = cupEntriesResponse.data ?? [];
+  const cupAudit = cupAuditResponse.data ?? [];
   const linkedRoundIds = cupRounds.map((round) => round.round_id);
   const seasonRoundIds = rounds.map((round) => round.id);
   const resultsResponse = seasonRoundIds.length
@@ -152,6 +168,20 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
   const usedCupOrders = new Set(cupRounds.map((round) => round.cup_order));
   const availableCupOrders = [1, 2, 3, 4].filter(
     (order) => !usedCupOrders.has(order)
+  );
+  const lastCupOrder = Math.max(0, ...cupRounds.map((round) => round.cup_order));
+  const nextCupOrder = lastCupOrder + 1;
+  const lastLinkedOfficialOrder = Math.max(
+    0,
+    ...cupRounds.map((round) => roundById.get(round.round_id)?.order ?? 0)
+  );
+  const publishedRoundCandidates = selectedCup.published_at
+    ? retroactiveRounds.filter((round) => round.order > lastLinkedOfficialOrder)
+    : [];
+  const publishedAddedRoundIds = new Set(
+    cupAudit
+      .filter((item) => item.action === "PUBLISHED_ROUND_ADDED")
+      .map((item) => item.round_id)
   );
   const openCupRounds = cupRounds.filter(
     (round) =>
@@ -363,11 +393,75 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
               </div>
             ) : null}
 
+            {selectedCup.published_at &&
+            publishedRoundCandidates.length > 0 &&
+            nextCupOrder <= 4 ? (
+              <form
+                action={addPublishedCupRound}
+                className="mb-6 space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-4"
+              >
+                <input type="hidden" name="cup_id" value={selectedCup.id} />
+                <input type="hidden" name="cup_order" value={nextCupOrder} />
+                <div>
+                  <h3 className="font-black text-amber-950">
+                    Adicionar etapa já realizada
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-amber-900">
+                    A etapa entrará como a {nextCupOrder}ª da Copa. Os {cupEntries.length}{" "}
+                    pilotos atuais serão mantidos e a classificação pública será recalculada
+                    com os resultados oficiais.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className={labelClassName}>
+                    Etapa oficial realizada
+                    <select name="round_id" required className={inputClassName}>
+                      <option value="">Selecione</option>
+                      {publishedRoundCandidates.map((round) => (
+                        <option key={round.id} value={round.id}>
+                          {round.name} · {formatDate(round.date)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={labelClassName}>
+                    Justificativa
+                    <input
+                      name="reason"
+                      required
+                      minLength={10}
+                      maxLength={300}
+                      className={inputClassName}
+                      placeholder="Explique por que a etapa será incluída agora"
+                    />
+                  </label>
+                </div>
+                <label className="flex items-start gap-3 text-sm font-semibold text-amber-950">
+                  <input
+                    type="checkbox"
+                    name="confirmed"
+                    value="true"
+                    required
+                    className="mt-1 h-4 w-4 accent-amber-700"
+                  />
+                  Confirmo que a etapa pertence à Copa e que o ranking publicado será
+                  recalculado imediatamente.
+                </label>
+                <SubmitButton pendingLabel="Vinculando etapa...">
+                  Vincular como {nextCupOrder}ª etapa
+                </SubmitButton>
+              </form>
+            ) : null}
+
             <div className="space-y-3">
               {cupRounds.map((cupRound) => {
                 const round = roundById.get(cupRound.round_id);
                 const hasResults = resultRoundIds.has(cupRound.round_id);
                 const closed = Boolean(cupRound.registration_closed_at) || hasResults;
+                const canUndoPublishedAddition =
+                  Boolean(selectedCup.published_at) &&
+                  publishedAddedRoundIds.has(cupRound.round_id) &&
+                  cupRound.cup_order === lastCupOrder;
                 return (
                   <article
                     key={cupRound.round_id}
@@ -381,9 +475,11 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
                         {closed
                           ? statusBadge(hasResults ? "Resultado publicado" : "Adesões encerradas", "slate")
                           : statusBadge("Adesões abertas", "green")}
-                        {cupRound.retroactive_at
-                          ? statusBadge("Inclusão retroativa", "amber")
-                          : null}
+                        {publishedAddedRoundIds.has(cupRound.round_id)
+                          ? statusBadge("Incluída após publicação", "amber")
+                          : cupRound.retroactive_at
+                            ? statusBadge("Inclusão retroativa", "amber")
+                            : null}
                       </div>
                       <p className="mt-1 text-sm text-slate-500">
                         {round ? `${formatDate(round.date)} · ${round.location}` : null}
@@ -394,7 +490,42 @@ export default async function CupAdminPage({ searchParams }: PageProps) {
                         </p>
                       ) : null}
                     </div>
-                    {cupRound.retroactive_at && !selectedCup.published_at ? (
+                    {canUndoPublishedAddition ? (
+                      <form
+                        action={undoPublishedCupRound}
+                        className="w-full space-y-2 sm:w-80"
+                      >
+                        <input type="hidden" name="cup_id" value={selectedCup.id} />
+                        <input type="hidden" name="round_id" value={cupRound.round_id} />
+                        <label className={labelClassName}>
+                          Motivo para desfazer
+                          <input
+                            name="reason"
+                            required
+                            minLength={10}
+                            maxLength={300}
+                            className={inputClassName}
+                            placeholder="Informe o motivo"
+                          />
+                        </label>
+                        <label className="flex items-start gap-2 text-xs font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            name="confirmed"
+                            value="true"
+                            required
+                            className="mt-0.5 h-4 w-4 accent-red-600"
+                          />
+                          Confirmo que o ranking publicado será recalculado sem esta etapa.
+                        </label>
+                        <SubmitButton
+                          className="bg-slate-200 hover:bg-white"
+                          pendingLabel="Desfazendo..."
+                        >
+                          Desfazer última inclusão
+                        </SubmitButton>
+                      </form>
+                    ) : cupRound.retroactive_at && !selectedCup.published_at ? (
                       <form
                         action={undoRetroactiveCupRound}
                         className="w-full space-y-2 sm:w-72"

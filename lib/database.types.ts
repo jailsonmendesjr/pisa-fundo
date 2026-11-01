@@ -425,11 +425,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      add_published_cup_round: {
+        Args: {
+          p_cup_id: number
+          p_cup_order: number
+          p_reason: string
+          p_round_id: number
+        }
+        Returns: undefined
+      }
       replace_round_results: {
         Args: { p_results: Json; p_round_id: number }
         Returns: undefined
       }
       undo_retroactive_cup_round: {
+        Args: { p_cup_id: number; p_reason: string; p_round_id: number }
+        Returns: undefined
+      }
+      undo_published_cup_round: {
         Args: { p_cup_id: number; p_reason: string; p_round_id: number }
         Returns: undefined
       }
